@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "304847397798",
+    "project_id": "binit-8b87e",
+    "storage_bucket": "binit-8b87e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:304847397798:android:05952cc7c4024274366567",
+        "android_client_info": {
+          "package_name": "com.sams.binit.binit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCCs7tWSS4JKQ_Q4qy1dtf7pmpvlOkaYPI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
