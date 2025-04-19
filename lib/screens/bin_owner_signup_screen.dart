@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:binit/services/auth_service.dart'; // Import AuthService
 import 'package:binit/models/user_model.dart'; // Import UserModel
-import 'package:binit/screens/home_screen.dart'; // Import HomeScreen - Ensure this import is correct and the file exists
+
 
 class BinOwnerSignupScreen extends StatefulWidget {
   const BinOwnerSignupScreen({super.key});
@@ -16,7 +16,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
-  final AuthService _authService = AuthService(); // Corrected: AuthService is a class, not in home_screen.dart
+  final AuthService _authService = AuthService();
   bool _isLoading = false;
   String _errorMessage = '';
 
@@ -57,9 +57,11 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
           // Sign up was successful, navigate to the home screen.
           //  Use Navigator.pushReplacement to avoid the user coming back to this screen
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => HomeScreen(user: user),
-            ),
+            // MaterialPageRoute(  // Removed  MaterialPageRoute
+            //   builder: (context) => HomeScreen(user: user), //  Removed  HomeScreen
+            // ),
+            //TODO: implement this.
+            MaterialPageRoute(builder: (context) => const Placeholder()),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -84,13 +86,47 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bin Owner Sign Up'),
+    // Figma Styles (as close as possible without complete Figma code)
+    const Color backgroundColor = Colors.white;
+    const double screenPadding = 24.0;
+    const TextStyle titleTextStyle = TextStyle(
+      fontSize: 60,
+      fontWeight: FontWeight.w400,
+      color: Colors.white,
+      fontFamily: 'Roboto Flex',
+    );
+    const TextStyle labelTextStyle = TextStyle(
+      fontSize: 15,
+      color: Color(0xFF777777),
+      fontFamily: 'Roboto',
+      fontWeight: FontWeight.w700,
+    );
+    const OutlineInputBorder inputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(15)),
+      borderSide: BorderSide(color: Colors.grey),
+    );
+    const TextStyle errorTextStyle = TextStyle(
+      color: Colors.red,
+      fontSize: 14,
+    );
+    final ButtonStyle registerButtonStyle = ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFF184D47),
+      foregroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
       ),
-      backgroundColor: Colors.white, // set background
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      textStyle: const TextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.w400,
+        fontFamily: 'Roboto',
+      ),
+    );
+
+    return Scaffold(
+      backgroundColor: backgroundColor,
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(screenPadding),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -98,16 +134,32 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
+                //  Logo
+                Image.asset(
+                  'assets/logo/logo.png', //  path
+                  fit: BoxFit.contain,
+                  height: 100, // added height
+                ),
+                const SizedBox(height: 30),
                 Text(
                   'Sign Up as Bin Owner',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: titleTextStyle,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24.0),
+                const SizedBox(height: 16),
+                // Name Input
                 TextFormField(
                   controller: _nameController,
+                  keyboardType: TextInputType.text,
                   decoration: const InputDecoration(
                     labelText: 'Name',
+                    labelStyle: labelTextStyle,
+                    border: inputBorder,
+                    focusedBorder: inputBorder,
+                    enabledBorder: inputBorder,
+                    prefixIcon: Icon(Icons.person, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -116,32 +168,48 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16.0),
+                const SizedBox(height: 16),
+                // Email Input
                 TextFormField(
                   controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
                     labelText: 'Email',
+                    labelStyle: labelTextStyle,
+                    border: inputBorder,
+                    focusedBorder: inputBorder,
+                    enabledBorder: inputBorder,
+                    prefixIcon: Icon(Icons.email, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email address.';
                     }
                     final emailRegex =
-                    RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                    RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,4}$');
                     if (!emailRegex.hasMatch(value)) {
                       return 'Please enter a valid email address.';
                     }
                     return null;
                   },
-                  keyboardType: TextInputType.emailAddress,
                 ),
-                const SizedBox(height: 16.0),
+                const SizedBox(height: 16),
+                // Password Input
                 TextFormField(
                   controller: _passwordController,
+                  obscureText: true,
                   decoration: const InputDecoration(
                     labelText: 'Password',
+                    labelStyle: labelTextStyle,
+                    border: inputBorder,
+                    focusedBorder: inputBorder,
+                    enabledBorder: inputBorder,
+                    prefixIcon: Icon(Icons.lock, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
-                  obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your password.';
@@ -152,13 +220,21 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16.0),
+                const SizedBox(height: 16),
+                // Confirm Password Input
                 TextFormField(
                   controller: _confirmPasswordController,
+                  obscureText: true,
                   decoration: const InputDecoration(
                     labelText: 'Confirm Password',
+                    labelStyle: labelTextStyle,
+                    border: inputBorder,
+                    focusedBorder: inputBorder,
+                    enabledBorder: inputBorder,
+                    prefixIcon: Icon(Icons.lock, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
-                  obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please confirm your password.';
@@ -169,21 +245,23 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 24.0),
+                const SizedBox(height: 24),
                 _isLoading
-                    ? const CircularProgressIndicator()
+                    ? const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                )
                     : ElevatedButton(
                   onPressed: _signUp,
-                  style: Theme.of(context).elevatedButtonTheme.style,
+                  style: registerButtonStyle,
                   child: const Text('Register'),
                 ),
-                const SizedBox(height: 16.0),
-                if (_errorMessage.isNotEmpty) //show error.
+                const SizedBox(height: 16),
+                if (_errorMessage.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
                     child: Text(
                       _errorMessage,
-                      style: const TextStyle(color: Colors.red),
+                      style: errorTextStyle,
                       textAlign: TextAlign.center,
                     ),
                   ),

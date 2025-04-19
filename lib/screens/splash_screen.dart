@@ -31,12 +31,10 @@ class _SplashScreenState extends State<SplashScreen> {
           children: <Widget>[
             // Add your logo or text here
             Text(
-              'Hi, Recyclers',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+             'Hi, Recyclers',
+             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+               color: Colors.white,
+             ),
             ),
             // You can add an image here if you have a logo
           ],
