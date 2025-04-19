@@ -1,33 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:binit/services/auth_service.dart'; // Import AuthService
 import 'package:binit/models/user_model.dart';
-//import 'package:flutter_application_1/home_screen.dart'; // Remove unused import.
 
-class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+class RecyclingCompanySignupScreen extends StatefulWidget {
+  const RecyclingCompanySignupScreen({super.key});
 
   @override
-  _SignupScreenState createState() => _SignupScreenState();
+  _RecyclingCompanySignupScreenState createState() =>
+      _RecyclingCompanySignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class _RecyclingCompanySignupScreenState
+    extends State<RecyclingCompanySignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _nameController = TextEditingController();
+  final _companyNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _taxIdController = TextEditingController(); // Added tax ID controller
   final AuthService _authService = AuthService();
   bool _isLoading = false;
-  String? _userType;
-  String _errorMessage =
-      ''; // Added for error message.  Make sure to use this.
+  String _errorMessage = '';
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _nameController.dispose();
+    _companyNameController.dispose();
+    _phoneController.dispose();
+    _taxIdController.dispose(); // Dispose tax ID controller
     super.dispose();
   }
 
@@ -43,33 +46,31 @@ class _SignupScreenState extends State<SignupScreen> {
         );
         return;
       }
-      if (_userType == null) {
-        setState(() {
-          _errorMessage = 'Please select a user type.';
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a user type.')),
-        );
-        return;
-      }
 
       setState(() {
         _isLoading = true;
-        _errorMessage =
-        ''; //clear the error message before a new attempt.
+        _errorMessage = '';
       });
       try {
-        await _authService.signUpWithEmailAndPassword(
+        //  Pass the phone and taxId to the signUpWithEmailAndPassword method.
+        final UserModel? user = await _authService.signUpWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
-          name: _nameController.text.trim(),
-          userType: _userType!,
+          name: _companyNameController.text.trim(),
+          userType: 'recyclingCompany',
+          phone: _phoneController.text.trim(),
+          taxId: _taxIdController.text
+              .trim(), // Include tax ID in the user data
         );
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signed up successfully!')),
-        );
-        Navigator.of(context)
-            .pushNamedAndRemoveUntil('/', (route) => false);
+        if (user != null) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const Placeholder()),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to sign up.')),
+          );
+        }
       } catch (error) {
         setState(() {
           _isLoading = false;
@@ -88,9 +89,47 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Figma Styles
+    const Color backgroundColor = Colors.white;
+    const double screenPadding = 24.0;
+    const TextStyle titleTextStyle = TextStyle(
+      fontSize: 60,
+      fontWeight: FontWeight.w400,
+      color: Colors.white,
+      fontFamily: 'Roboto Flex',
+    );
+    const TextStyle labelTextStyle = TextStyle(
+      fontSize: 15,
+      color: Color(0xFF777777),
+      fontFamily: 'Roboto',
+      fontWeight: FontWeight.w700,
+    );
+    const OutlineInputBorder inputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(15)),
+      borderSide: BorderSide(color: Colors.grey),
+    );
+    const TextStyle errorTextStyle = TextStyle(
+      color: Colors.red,
+      fontSize: 14,
+    );
+    final ButtonStyle registerButtonStyle = ElevatedButton.styleFrom(
+      backgroundColor: const Color(0xFF184D47),
+      foregroundColor: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      textStyle: const TextStyle(
+        fontSize: 32,
+        fontWeight: FontWeight.w400,
+        fontFamily: 'Roboto',
+      ),
+    );
+
     return Scaffold(
+      backgroundColor: backgroundColor,
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(screenPadding),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
@@ -98,50 +137,82 @@ class _SignupScreenState extends State<SignupScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
+                //  Logo
+                Image.asset(
+                  'assets/logo/logo.png', //  path
+                  fit: BoxFit.contain,
+                  height: 100,
+                ),
+                const SizedBox(height: 30),
                 Text(
-                  'Sign Up',
-                  style: Theme.of(context).textTheme.titleLarge,
+                  'Sign Up as Recycling Company',
+                  style: titleTextStyle,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24.0),
+                const SizedBox(height: 16),
+                // Company Name Input
                 TextFormField(
-                  controller: _nameController,
+                  controller: _companyNameController,
+                  keyboardType: TextInputType.text,
                   decoration: const InputDecoration(
-                    labelText: 'Name',
+                    labelText: 'Company Name',
+                    labelStyle: labelTextStyle,
+                    border: inputBorder,
+                    focusedBorder: inputBorder,
+                    enabledBorder: inputBorder,
+                    prefixIcon: Icon(Icons.business, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your name.';
+                      return 'Please enter your company name.';
                     }
                     return null;
                   },
                 ),
-                const SizedBox(height: 16.0),
+                const SizedBox(height: 16),
+                // Email Input
                 TextFormField(
                   controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: const InputDecoration(
                     labelText: 'Email',
+                    labelStyle: labelTextStyle,
+                    border: inputBorder,
+                    focusedBorder: inputBorder,
+                    enabledBorder: inputBorder,
+                    prefixIcon: Icon(Icons.email, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email address.';
                     }
                     final emailRegex =
-                    RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                    RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,4}$');
                     if (!emailRegex.hasMatch(value)) {
                       return 'Please enter a valid email address.';
                     }
                     return null;
                   },
-                  keyboardType: TextInputType.emailAddress,
                 ),
-                const SizedBox(height: 16.0),
+                const SizedBox(height: 16),
+                // Password Input
                 TextFormField(
                   controller: _passwordController,
+                  obscureText: true,
                   decoration: const InputDecoration(
                     labelText: 'Password',
+                    labelStyle: labelTextStyle,
+                    border: inputBorder,
+                    focusedBorder: inputBorder,
+                    enabledBorder: inputBorder,
+                    prefixIcon: Icon(Icons.lock, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
-                  obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your password.';
@@ -152,13 +223,21 @@ class _SignupScreenState extends State<SignupScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16.0),
+                const SizedBox(height: 16),
+                // Confirm Password Input
                 TextFormField(
                   controller: _confirmPasswordController,
+                  obscureText: true,
                   decoration: const InputDecoration(
                     labelText: 'Confirm Password',
+                    labelStyle: labelTextStyle,
+                    border: inputBorder,
+                    focusedBorder: inputBorder,
+                    enabledBorder: inputBorder,
+                    prefixIcon: Icon(Icons.lock, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
                   ),
-                  obscureText: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please confirm your password.';
@@ -169,60 +248,73 @@ class _SignupScreenState extends State<SignupScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 24.0),
-                Row(
-                  children: <Widget>[
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: const Text('Bin Owner'),
-                        value: 'binOwner',
-                        groupValue: _userType,
-                        onChanged: (value) {
-                          setState(() {
-                            _userType = value;
-                          });
-                        },
-                      ),
-                    ),
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: const Text('Recycling Company'),
-                        value: 'recyclingCompany',
-                        groupValue: _userType,
-                        onChanged: (value) {
-                          setState(() {
-                            _userType = value;
-                          });
-                        },
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 16),
+                // Phone Number Input
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Phone Number',
+                    labelStyle: labelTextStyle,
+                    border: inputBorder,
+                    focusedBorder: inputBorder,
+                    enabledBorder: inputBorder,
+                    prefixIcon: Icon(Icons.phone, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your phone number.';
+                    }
+                    //  phone number validation
+                    if (value.length < 10) {
+                      return 'Please enter a valid phone number.';
+                    }
+                    return null;
+                  },
                 ),
-                const SizedBox(height: 24.0),
+                const SizedBox(height: 16),
+                // Tax ID Input
+                TextFormField(
+                  controller: _taxIdController,
+                  keyboardType: TextInputType.text,
+                  decoration: const InputDecoration(
+                    labelText: 'Tax ID / Registration Number',
+                    labelStyle: labelTextStyle,
+                    border: inputBorder,
+                    focusedBorder: inputBorder,
+                    enabledBorder: inputBorder,
+                    prefixIcon:
+                    Icon(Icons.badge, color: Colors.grey), // Example icon
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your Tax ID / Registration Number';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
                 _isLoading
-                    ? const CircularProgressIndicator()
+                    ? const CircularProgressIndicator(
+                  valueColor:
+                  AlwaysStoppedAnimation<Color>(Colors.white),
+                )
                     : ElevatedButton(
                   onPressed: _signUp,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).primaryColor,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                    ),
-                    textStyle: const TextStyle(
-                        fontSize: 18.0, fontWeight: FontWeight.w600),
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12.0, horizontal: 24.0),
-                  ),
+                  style: registerButtonStyle,
                   child: const Text('Register'),
                 ),
-                const SizedBox(height: 16.0),
-                if (_errorMessage.isNotEmpty) // Display the error message
+                const SizedBox(height: 16),
+                if (_errorMessage.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
                     child: Text(
                       _errorMessage,
-                      style: const TextStyle(color: Colors.red),
+                      style: errorTextStyle,
                       textAlign: TextAlign.center,
                     ),
                   ),

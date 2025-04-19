@@ -34,7 +34,7 @@ class BinItApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/signup_as': (context) => const SignUpAs(),
         '/bin_owner_signup': (context) => const BinOwnerSignupScreen(),
-        '/recycling_company_signup': (context) => const SignupScreen(), // reusing the signup screen
+        '/recycling_company_signup': (context) => const RecyclingCompanySignupScreen(), // reusing the signup screen
       },
     );
   }
