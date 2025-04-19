@@ -44,7 +44,7 @@ class RecyclingCompanyHomeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Recycling Company Home')),
       body: Center(
-        child: Text('Welcome, $userName!'),
+        child: Text('Welcome company, $userName!'),
       ),
     );
   }

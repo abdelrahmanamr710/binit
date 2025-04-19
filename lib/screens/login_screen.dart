@@ -16,7 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isLoading = false;
-  String _errorMessage = ''; // Added for error messages
+  String _errorMessage = '';
 
   @override
   void dispose() {
@@ -25,13 +25,11 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  // Function to handle login
   void _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
         _isLoading = true;
-        _errorMessage =
-        ''; // Clear error message before starting login process
+        _errorMessage = '';
       });
       try {
         final UserModel? user = await _authService.signInWithEmailAndPassword(
@@ -39,15 +37,12 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text.trim(),
         );
         if (user != null) {
-          // Navigate to home screen after successful login
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (context) =>
-                  HomeScreen(user: user), // Pass the user object
+              builder: (context) => HomeScreen(user: user),
             ),
           );
         } else {
-          // Show error if user is null
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
                 content: Text('Failed to retrieve user data.'),
@@ -55,7 +50,6 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         }
       } catch (error) {
-        // Handle login errors, show a snackbar
         setState(() {
           _isLoading = false;
           _errorMessage = error.toString();
@@ -73,10 +67,53 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Figma Styles (as close as possible without complete Figma code)
+    const Color backgroundColor = Colors.white; // From Figma
+    const double screenPadding = 24.0; //  padding
+    const TextStyle titleTextStyle = TextStyle(
+      fontSize: 24, //  size
+      fontWeight: FontWeight.bold, //  weight
+      color: Colors.black, //  color.
+    );
+    const TextStyle labelTextStyle = TextStyle(
+      fontSize: 16, //  size
+      color: Colors.grey, //  color.
+    );
+    const OutlineInputBorder inputBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(15)), // From Figma
+      borderSide: BorderSide(color: Colors.grey), // Added border color
+    );
+    const TextStyle forgotPasswordTextStyle = TextStyle(
+      color: Colors.blue, // From existing code
+      fontSize: 14,
+    );
+    final ButtonStyle loginButtonStyle = ElevatedButton.styleFrom(
+      backgroundColor:
+      Colors.green, //  color.  Use your theme or a constant.
+      foregroundColor: Colors.white, //  color
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15), // From Figma
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      textStyle: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+    const TextStyle signUpTextStyle = TextStyle(
+      color: Colors.blue, // From existing code.
+      fontWeight: FontWeight.bold,
+      fontSize: 14,
+    );
+    const TextStyle errorTextStyle = TextStyle(
+      color: Colors.red,
+      fontSize: 14,
+    );
+
     return Scaffold(
-      backgroundColor: Colors.white, // set background color
+      backgroundColor: backgroundColor,
       body: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(screenPadding),
         child: Form(
           key: _formKey,
           child: Column(
@@ -93,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
               */
               Text(
                 'Login',
-                style: Theme.of(context).textTheme.titleLarge,
+                style: titleTextStyle,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
@@ -103,8 +140,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 decoration: const InputDecoration(
                   labelText: 'Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
+                  labelStyle: labelTextStyle,
+                  border: inputBorder,
+                  focusedBorder: inputBorder,
+                  enabledBorder: inputBorder,
+                  prefixIcon: Icon(Icons.email, color: Colors.grey), // Added color
+                  filled: true,
+                  fillColor: Colors.white, // added background color
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -124,8 +166,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 obscureText: true,
                 decoration: const InputDecoration(
                   labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
+                  labelStyle: labelTextStyle,
+                  border: inputBorder,
+                  focusedBorder: inputBorder,
+                  enabledBorder: inputBorder,
+                  prefixIcon: Icon(Icons.lock, color: Colors.grey), // Added color
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -145,17 +192,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   },
                   child: const Text(
                     'Forgot Password?',
-                    style: TextStyle(color: Colors.blue),
+                    style: forgotPasswordTextStyle,
                   ),
                 ),
               ),
               const SizedBox(height: 24),
               // Login Button
               ElevatedButton(
-                onPressed: _isLoading ? null : _login, // Disable when loading
-                style: Theme.of(context).elevatedButtonTheme.style,
+                onPressed: _isLoading ? null : _login,
+                style: loginButtonStyle,
                 child: _isLoading
-                    ? const CircularProgressIndicator()
+                    ? const CircularProgressIndicator(
+                  valueColor:
+                  AlwaysStoppedAnimation<Color>(Colors.white),
+                )
                     : const Text('Sign In'),
               ),
               const SizedBox(height: 16),
@@ -168,22 +218,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       Navigator.of(context).pushNamed('/signup_as');
                     },
-                    child: Text(
+                    child: const Text(
                       'Sign Up',
-                      style: TextStyle(
-                        color: Theme.of(context).primaryColor,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: signUpTextStyle,
                     ),
                   ),
                 ],
               ),
-              if (_errorMessage.isNotEmpty) //show error message.
+              if (_errorMessage.isNotEmpty)
+              //show error message.
                 Padding(
                   padding: const EdgeInsets.only(top: 10),
                   child: Text(
                     _errorMessage,
-                    style: const TextStyle(color: Colors.red),
+                    style: errorTextStyle,
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -194,3 +242,4 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+

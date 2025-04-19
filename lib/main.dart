@@ -1,4 +1,3 @@
-// main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'config/app_theme.dart';
@@ -26,15 +25,59 @@ class BinItApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Bin-It',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        fontFamily:
+        'Roboto', // Set the default font family here.  Make sure the font is added in the pubspec.yaml and the font file exists.
+        textTheme: const TextTheme(
+          // You can also define specific styles for different text elements here if needed.  This is optional.
+          bodyLarge: TextStyle(fontFamily: 'Roboto'),
+          bodyMedium: TextStyle(fontFamily: 'Roboto'),
+          displayLarge: TextStyle(fontFamily: 'Roboto'),
+          displayMedium: TextStyle(fontFamily: 'Roboto'),
+          displaySmall: TextStyle(fontFamily: 'Roboto'),
+          headlineLarge: TextStyle(fontFamily: 'Roboto'),
+          headlineMedium: TextStyle(fontFamily: 'Roboto'),
+          headlineSmall: TextStyle(fontFamily: 'Roboto'),
+          labelLarge: TextStyle(fontFamily: 'Roboto'),
+          labelMedium: TextStyle(fontFamily: 'Roboto'),
+          labelSmall: TextStyle(fontFamily: 'Roboto'),
+          titleLarge: TextStyle(fontFamily: 'Roboto'),
+          titleMedium: TextStyle(fontFamily: 'Roboto'),
+          titleSmall: TextStyle(fontFamily: 'Roboto'),
+        ),
+      ),
+      darkTheme: ThemeData(
+        primarySwatch: Colors.blue,
+        fontFamily:
+        'Roboto', // Set the default font family here.   Make sure the font is added in the pubspec.yaml and the font file exists.
+
+        textTheme: const TextTheme(
+          // You can also define specific styles for different text elements here if needed.   This is optional.
+          bodyLarge: TextStyle(fontFamily: 'Roboto'),
+          bodyMedium: TextStyle(fontFamily: 'Roboto'),
+          displayLarge: TextStyle(fontFamily: 'Roboto'),
+          displayMedium: TextStyle(fontFamily: 'Roboto'),
+          displaySmall: TextStyle(fontFamily: 'Roboto'),
+          headlineLarge: TextStyle(fontFamily: 'Roboto'),
+          headlineMedium: TextStyle(fontFamily: 'Roboto'),
+          headlineSmall: TextStyle(fontFamily: 'Roboto'),
+          labelLarge: TextStyle(fontFamily: 'Roboto'),
+          labelMedium: TextStyle(fontFamily: 'Roboto'),
+          labelSmall: TextStyle(fontFamily: 'Roboto'),
+          titleLarge: TextStyle(fontFamily: 'Roboto'),
+          titleMedium: TextStyle(fontFamily: 'Roboto'),
+          titleSmall: TextStyle(fontFamily: 'Roboto'),
+        ),
+      ),
       themeMode: ThemeMode.system,
-      home: const SplashScreen(), // Use SplashScreen as the initial screen.  This is the change.
-      routes: { // Define routes for navigation
+      home: const SplashScreen(),
+      routes: {
         '/login': (context) => const LoginScreen(),
         '/signup_as': (context) => const SignupAsScreen(),
         '/bin_owner_signup': (context) => const BinOwnerSignupScreen(),
-        '/recycling_company_signup': (context) => const SignupScreen(), // reusing the signup screen
+        '/recycling_company_signup': (context) =>
+        const SignupScreen(), // reusing the signup screen
       },
     );
   }
