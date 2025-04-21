@@ -71,39 +71,48 @@ class _LoginScreenState extends State<LoginScreen> {
     const Color backgroundColor = Colors.white; // From Figma
     const double screenPadding = 24.0; //  padding
     const TextStyle titleTextStyle = TextStyle(
-      fontSize: 24, //  size
-      fontWeight: FontWeight.bold, //  weight
-      color: Colors.black, //  color.
+        fontSize: 60, //  size from figma
+        fontWeight: FontWeight.w400, //  weight from figma
+        color: Colors.white, //  color from figma.
+        fontFamily: 'Roboto Flex'
     );
     const TextStyle labelTextStyle = TextStyle(
-      fontSize: 16, //  size
-      color: Colors.grey, //  color.
+        fontSize: 15, //  size from figma
+        color:  Color(0xFF777777), //  color from figma.
+        fontFamily: 'Roboto',
+        fontWeight: FontWeight.w700
     );
     const OutlineInputBorder inputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(15)), // From Figma
       borderSide: BorderSide(color: Colors.grey), // Added border color
     );
     const TextStyle forgotPasswordTextStyle = TextStyle(
-      color: Colors.blue, // From existing code
-      fontSize: 14,
+        color: Colors.black, // From  figma
+        fontSize: 15,
+        fontFamily: 'Futura Lt BT',
+        fontWeight: FontWeight.w400,
+        letterSpacing: -0.75
     );
     final ButtonStyle loginButtonStyle = ElevatedButton.styleFrom(
       backgroundColor:
-      Colors.green, //  color.  Use your theme or a constant.
+      const Color(0xFF184D47), //  color from figma.
       foregroundColor: Colors.white, //  color
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15), // From Figma
       ),
       padding: const EdgeInsets.symmetric(vertical: 12),
       textStyle: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w500,
+          fontSize: 32,
+          fontWeight: FontWeight.w400,
+          fontFamily: 'Roboto'
       ),
     );
     const TextStyle signUpTextStyle = TextStyle(
-      color: Colors.blue, // From existing code.
-      fontWeight: FontWeight.bold,
-      fontSize: 14,
+      color:  Color(0xFF141313), // From figma.
+      fontWeight: FontWeight.w400,
+      fontSize: 15,
+      fontFamily: 'Roboto',
+      decoration: TextDecoration.underline,
     );
     const TextStyle errorTextStyle = TextStyle(
       color: Colors.red,
@@ -120,27 +129,26 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              // Logo Section
-              /*
-              Image.asset(  // Replace with your actual logo asset path
-                'assets/logo.png',
-                height: 100,
+              Expanded(
+                child: Image.asset(  // Replace with your actual logo asset path
+                  'assets/logo/logo.png',
+                  fit: BoxFit.contain,
+                ),
               ),
-              const SizedBox(height: 32),
-              */
+              const SizedBox(height: 30),
               Text(
                 'Login',
                 style: titleTextStyle,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 48),
+              const SizedBox(height: 16),
               // Email Input
               TextFormField(
                 controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
+                keyboardType: TextInputType.text,
                 decoration: const InputDecoration(
-                  labelText: 'Email',
-                  labelStyle: labelTextStyle,
+                  labelText: 'Username', // changed label
+                  labelStyle: labelTextStyle, // changed label
                   border: inputBorder,
                   focusedBorder: inputBorder,
                   enabledBorder: inputBorder,
@@ -191,7 +199,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     print("Forgot Password Clicked");
                   },
                   child: const Text(
-                    'Forgot Password?',
+                    'Forgot Your Password?', // changed text
                     style: forgotPasswordTextStyle,
                   ),
                 ),
@@ -206,14 +214,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   valueColor:
                   AlwaysStoppedAnimation<Color>(Colors.white),
                 )
-                    : const Text('Sign In'),
+                    : const Text('Sign in'), // changed text
               ),
               const SizedBox(height: 16),
               // Sign Up
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: <Widget>[
-                  const Text("Don't have an account?"),
+                  const Text("Don't Have an Account? "), // changed text
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pushNamed('/signup_as');

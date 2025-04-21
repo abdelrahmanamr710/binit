@@ -64,6 +64,12 @@ flutter:
     - family: Roboto
       fonts:
         - asset: assets/fonts/Roboto.ttf
+  assets:
+    - assets/logo/logo.png
+    - assets/png/leftcornergreen.png
+
+
+
 
 
   # To add assets to your application, add an assets section, like this:

@@ -12,6 +12,8 @@ class AuthService {
     required String password,
     required String name,
     required String userType,
+    String? phone, // Make phone optional
+    String? taxId, // Make taxId optional
   }) async {
     try {
       final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
@@ -25,13 +27,10 @@ class AuthService {
           email: email,
           name: name,
           userType: userType,
+          phone: phone, // Store phone
+          taxId: taxId, // Store taxId
         );
         await _firestore.collection('users').doc(user.uid).set(newUser.toJson());
-        return newUser;
-
-        print("User data to be stored in Firestore: ${newUser.toJson()}"); // Add this line
-        await _firestore.collection('users').doc(user.uid).set(newUser.toJson());
-        print("Firestore document created successfully for user: ${user.uid}"); // Add this line
         return newUser;
       }
       return null;
@@ -113,3 +112,4 @@ class AuthService {
     await _auth.signOut();
   }
 }
+
