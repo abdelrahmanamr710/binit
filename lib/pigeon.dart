@@ -12,7 +12,7 @@ import 'package:pigeon/pigeon.dart';
   ),
   //  java output configuration
   javaOptions: JavaOptions(
-    packageName: 'com.example.pigeon',
+    package: 'com.example.pigeon',
   ),
   // C++ output
   cppOptions: CppOptions(
