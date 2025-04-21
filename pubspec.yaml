@@ -67,6 +67,7 @@ flutter:
   assets:
     - assets/logo/logo.png
     - assets/png/leftcornergreen.png
+    - assets/png/rightcornergreen.png
 
 
 

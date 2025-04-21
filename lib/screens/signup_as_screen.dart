@@ -113,31 +113,31 @@ class SignUpAs extends StatelessWidget {
                   ),
                   const SizedBox(height: 40),
                   Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const LoginScreen()),
-                        );
-                      },
-                      child: RichText(
-                        text: const TextSpan(
-                          text: "Already Have an Account? ",
-                          style: TextStyle(
-                            color: Color(0xFF141313),
-                            fontSize: 15,
-                          ),
-                          children: <TextSpan>[
-                            TextSpan(
-                              text: 'login',
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const LoginScreen()),
+                          );
+                        },
+                        child: RichText(
+                            text: const TextSpan(
+                              text: "Already Have an Account? ",
                               style: TextStyle(
-                                decoration: TextDecoration.underline,
+                                color: Color(0xFF141313),
+                                fontSize: 15,
                               ),
-                            ),
-                          ],
-                        )),
-                    )
+                              children: <TextSpan>[
+                                TextSpan(
+                                  text: 'login',
+                                  style: TextStyle(
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ],
+                            )),
+                      )
                   ),
                 ],
               ),
