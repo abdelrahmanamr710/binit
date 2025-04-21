@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:binit/services/auth_service.dart'; // Import AuthService
 import 'package:binit/models/user_model.dart'; // Import UserModel
+import 'package:binit/screens/binOwner_homescreen.dart'; // Import the BinOwnerHomeScreen
 
 class BinOwnerSignupScreen extends StatefulWidget {
   const BinOwnerSignupScreen({super.key});
@@ -15,6 +16,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
+  //final _addressController = TextEditingController(); // Removed address controller
   final AuthService _authService = AuthService();
   bool _isLoading = false;
   String _errorMessage = '';
@@ -25,6 +27,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _nameController.dispose();
+    //_addressController.dispose(); // Removed address controller
     super.dispose();
   }
 
@@ -46,15 +49,21 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
         _errorMessage = '';
       });
       try {
+        // Pass the address to the signUpWithEmailAndPassword method.
         final UserModel? user = await _authService.signUpWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
           name: _nameController.text.trim(),
           userType: 'binOwner',
+          //address: _addressController.text.trim(), // Removed address from user data
         );
         if (user != null) {
+          // Navigate to the BinOwnerHomeScreen after successful signup
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const Placeholder()),
+            MaterialPageRoute(
+              builder: (context) =>
+                  BinOwnerHomeScreen(userName: user.name ?? ""), // Pass the user name
+            ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -67,7 +76,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
           _errorMessage = error.toString();
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $error')),
+          SnackBar(content: Text('Error: $_errorMessage')),
         );
       } finally {
         setState(() {
@@ -97,10 +106,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
       borderRadius: BorderRadius.all(Radius.circular(15)),
       borderSide: BorderSide(color: Colors.grey),
     );
-    const TextStyle errorTextStyle = TextStyle(
-      color: Colors.red,
-      fontSize: 14,
-    );
+    const TextStyle errorTextStyle = TextStyle(color: Colors.red, fontSize: 14);
     final ButtonStyle registerButtonStyle = ElevatedButton.styleFrom(
       backgroundColor: const Color(0xFF184D47),
       foregroundColor: Colors.white,
@@ -116,6 +122,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
     );
 
     return Scaffold(
+      backgroundColor: backgroundColor,
       body: SafeArea(
         child: Container(
           constraints: const BoxConstraints.expand(),
@@ -249,7 +256,8 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                     const SizedBox(height: 24),
                     _isLoading
                         ? const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      valueColor:
+                      AlwaysStoppedAnimation<Color>(Colors.white),
                     )
                         : ElevatedButton(
                       onPressed: _signUp,
@@ -276,3 +284,4 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
     );
   }
 }
+

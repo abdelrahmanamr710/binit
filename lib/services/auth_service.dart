@@ -14,6 +14,7 @@ class AuthService {
     required String userType,
     String? phone, // Make phone optional
     String? taxId, // Make taxId optional
+    String? address,
   }) async {
     try {
       final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
@@ -22,15 +23,22 @@ class AuthService {
       );
       final User? user = userCredential.user;
       if (user != null) {
+        // Create a UserModel instance.
         final UserModel newUser = UserModel(
           uid: user.uid,
           email: email,
           name: name,
           userType: userType,
-          phone: phone, // Store phone
-          taxId: taxId, // Store taxId
+          phone: phone,
+          taxId: taxId,
         );
-        await _firestore.collection('users').doc(user.uid).set(newUser.toJson());
+
+        // Convert the UserModel to a JSON map.
+        final Map<String, dynamic> userData = newUser.toJson();
+
+        // Use the set method to create a document with the user's UID.  This will overwrite any existing document with the user's UID.
+        await _firestore.collection('users').doc(user.uid).set(userData);
+
         return newUser;
       }
       return null;
@@ -57,7 +65,12 @@ class AuthService {
           Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
           // Ensure that userData is not null and is a map.
           if (userData != null && userData is Map<String, dynamic>) {
-            return UserModel.fromJson(userData);
+            try {
+              return UserModel.fromJson(userData);
+            } catch (e) {
+              print("Error decoding user data: $e.  Data: $userData");
+              return null; // Or throw an exception if you want to handle it differently
+            }
           }
           else{
             print("Error: userData is null or not a map");

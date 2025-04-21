@@ -7,11 +7,12 @@ import 'screens/splash_screen.dart'; // Import SplashScreen
 import 'screens/login_screen.dart'; // Import LoginScreen - Ensure this import is correct
 import 'models/user_model.dart'; //Import user model
 import 'services/auth_service.dart';
-import 'screens/home_screen.dart'; // Import the new HomeScreen
 import 'screens/signup_as_screen.dart';
 import 'screens/bin_owner_signup_screen.dart';
-import 'screens/signup_screen.dart'; // Ensure this import is correct
+import 'screens/recyclingCompany_signup_screen.dart'; // Ensure this import is correct
 import 'src/pigeon.g.dart';
+import 'screens/binOwner_homescreen.dart';
+import 'screens/recyclingCompany_homescreen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,11 +31,14 @@ class BinItApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       home: const SplashScreen(), // Use SplashScreen as the initial screen.  This is the change.
-      routes: { // Define routes for navigation
+      routes: <String, WidgetBuilder>{ // Define routes for navigation
         '/login': (context) => const LoginScreen(),
         '/signup_as': (context) => const SignUpAs(),
         '/bin_owner_signup': (context) => const BinOwnerSignupScreen(),
         '/recycling_company_signup': (context) => const RecyclingCompanySignupScreen(), // reusing the signup screen
+        '/bin_owner_home': (context) => const BinOwnerHomeScreen(userName: "Owner"), // Add this route.
+        'reccycling_company_home': (context) => const RecyclingCompanyHomeScreen(userName: "Company"), // Add this route.'
+
       },
     );
   }

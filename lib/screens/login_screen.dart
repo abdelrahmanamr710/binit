@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:binit/services/auth_service.dart'; // Import AuthService
 import 'package:binit/models/user_model.dart';
-import 'package:binit/screens/home_screen.dart'; // Import HomeScreen
+import 'package:binit/screens/binOwner_homescreen.dart'; // Import BinOwnerHomeScreen
+import 'package:binit/screens/recyclingCompany_homescreen.dart'; // Import RecyclingCompanyHomeScreen
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,11 +38,34 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text.trim(),
         );
         if (user != null) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => HomeScreen(user: user),
-            ),
-          );
+          // Check user type and navigate accordingly
+          if (user.userType == 'binOwner') {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => BinOwnerHomeScreen(userName: user.name ??
+                    ""),
+              ),
+            );
+          } else if (user.userType == 'recyclingCompany') {
+              Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => RecyclingCompanyHomeScreen(userName: user.name ??
+                    ""),
+              ),
+            );
+          } else {
+            // Handle unknown user type (optional - navigate to a default screen or show an error)
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => const LoginScreen(), //stay in login
+              ),
+            );
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('Unknown user type.'),
+                  backgroundColor: Colors.red),
+            );
+          }
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -78,13 +102,13 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     const TextStyle labelTextStyle = TextStyle(
         fontSize: 15, //  size from figma
-        color:  Color(0xFF777777), //  color from figma.
+        color:  const Color(0xFF777777), //  color from figma.
         fontFamily: 'Roboto',
         fontWeight: FontWeight.w700
     );
     const OutlineInputBorder inputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(15)), // From Figma
-      borderSide: BorderSide(color: Colors.grey), // Added border color
+      borderSide: const BorderSide(color: Colors.grey), // Added border color
     );
     const TextStyle forgotPasswordTextStyle = TextStyle(
         color: Colors.black, // From  figma
@@ -108,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
     const TextStyle signUpTextStyle = TextStyle(
-      color:  Color(0xFF141313), // From figma.
+      color:  const Color(0xFF141313), // From figma.
       fontWeight: FontWeight.w400,
       fontSize: 15,
       fontFamily: 'Roboto',

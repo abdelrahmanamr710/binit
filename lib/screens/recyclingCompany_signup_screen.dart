@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:binit/services/auth_service.dart'; // Import AuthService
 import 'package:binit/models/user_model.dart';
+import 'package:binit/screens/recyclingCompany_homescreen.dart'; // Import the home screen
 
 class RecyclingCompanySignupScreen extends StatefulWidget {
   const RecyclingCompanySignupScreen({super.key});
@@ -52,33 +53,35 @@ class _RecyclingCompanySignupScreenState
         _errorMessage = '';
       });
       try {
-        //  Pass the phone and taxId to the signUpWithEmailAndPassword method.
+        // Pass the phone and taxId to the signUpWithEmailAndPassword method.
         final UserModel? user = await _authService.signUpWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
           name: _companyNameController.text.trim(),
           userType: 'recyclingCompany',
           phone: _phoneController.text.trim(),
-          taxId: _taxIdController.text
-              .trim(), // Include tax ID in the user data
+          taxId: _taxIdController.text.trim(), // Include tax ID in the user data
         );
         if (user != null) {
+          // Navigate to the recycling company home screen
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const Placeholder()),
+            MaterialPageRoute(
+              builder: (context) => RecyclingCompanyHomeScreen(
+                  userName: user.name ??
+                      ""), // Pass the user data, handle null with ""
+            ),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to sign up.')),
-          );
+              const SnackBar(content: Text('Failed to sign up.')));
         }
       } catch (error) {
         setState(() {
           _isLoading = false;
           _errorMessage = error.toString();
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $_errorMessage')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $_errorMessage')));
       } finally {
         setState(() {
           _isLoading = false;
@@ -108,16 +111,11 @@ class _RecyclingCompanySignupScreenState
       borderRadius: BorderRadius.all(Radius.circular(15)),
       borderSide: BorderSide(color: Colors.grey),
     );
-    const TextStyle errorTextStyle = TextStyle(
-      color: Colors.red,
-      fontSize: 14,
-    );
+    const TextStyle errorTextStyle = TextStyle(color: Colors.red, fontSize: 14);
     final ButtonStyle registerButtonStyle = ElevatedButton.styleFrom(
       backgroundColor: const Color(0xFF184D47),
       foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       padding: const EdgeInsets.symmetric(vertical: 12),
       textStyle: const TextStyle(
         fontSize: 32,
@@ -190,8 +188,9 @@ class _RecyclingCompanySignupScreenState
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email address.';
                     }
-                    final emailRegex =
-                    RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,4}$');
+                    final emailRegex = RegExp(
+                      r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,4}$',
+                    );
                     if (!emailRegex.hasMatch(value)) {
                       return 'Please enter a valid email address.';
                     }
@@ -285,8 +284,8 @@ class _RecyclingCompanySignupScreenState
                     border: inputBorder,
                     focusedBorder: inputBorder,
                     enabledBorder: inputBorder,
-                    prefixIcon:
-                    Icon(Icons.badge, color: Colors.grey), // Example icon
+                    prefixIcon: Icon(Icons.badge, color: Colors.grey),
+                    // Example icon
                     filled: true,
                     fillColor: Colors.white,
                   ),
