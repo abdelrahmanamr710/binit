@@ -146,15 +146,25 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                     Image.asset(
                       'assets/png/rightcornergreen.png', // path
                       fit: BoxFit.contain,
-                      height: 100, // added height
+                      height: 160, // added height
                     ),
                     const SizedBox(height: 30),
-                    Text(
-                      'Sign Up as Bin Owner',
-                      style: titleTextStyle,
-                      textAlign: TextAlign.right,
+                    const Padding(
+                      padding: EdgeInsets.only(right: 0.01, left: 50.0),
+                      child: Text(
+                        'Sign Up as Bin Owner',  // Add a line break with \n
+                        style: TextStyle(
+                          fontFamily: 'Roboto',  // Replace 'Roboto' with your desired font family
+                          fontSize: 55,          // Adjust the font size as needed
+                          // fontWeight: FontWeight.bold, // Adjust the font weight if necessary
+                          color: Colors.white,  // Set text color to white
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 30),  // Adjust the height as needed
+
+
                     // Name Input
                     TextFormField(
                       controller: _nameController,
