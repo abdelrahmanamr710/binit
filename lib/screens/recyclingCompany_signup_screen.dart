@@ -73,7 +73,8 @@ class _RecyclingCompanySignupScreenState
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to sign up.')));
+            const SnackBar(content: Text('Failed to sign up.')),
+          );
         }
       } catch (error) {
         setState(() {
@@ -96,7 +97,7 @@ class _RecyclingCompanySignupScreenState
     const Color backgroundColor = Colors.white;
     const double screenPadding = 24.0;
     const TextStyle titleTextStyle = TextStyle(
-      fontSize: 60,
+      fontSize: 50, // Adjusted title size
       fontWeight: FontWeight.w400,
       color: Colors.white,
       fontFamily: 'Roboto Flex',
@@ -115,7 +116,9 @@ class _RecyclingCompanySignupScreenState
     final ButtonStyle registerButtonStyle = ElevatedButton.styleFrom(
       backgroundColor: const Color(0xFF184D47),
       foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
       padding: const EdgeInsets.symmetric(vertical: 12),
       textStyle: const TextStyle(
         fontSize: 32,
@@ -126,198 +129,220 @@ class _RecyclingCompanySignupScreenState
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.all(screenPadding),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                //  Logo
-                Image.asset(
-                  'assets/logo/logo.png', //  path
-                  fit: BoxFit.contain,
-                  height: 100,
-                ),
-                const SizedBox(height: 30),
-                Text(
-                  'Sign Up as Recycling Company',
-                  style: titleTextStyle,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                // Company Name Input
-                TextFormField(
-                  controller: _companyNameController,
-                  keyboardType: TextInputType.text,
-                  decoration: const InputDecoration(
-                    labelText: 'Company Name',
-                    labelStyle: labelTextStyle,
-                    border: inputBorder,
-                    focusedBorder: inputBorder,
-                    enabledBorder: inputBorder,
-                    prefixIcon: Icon(Icons.business, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your company name.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Email Input
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    labelStyle: labelTextStyle,
-                    border: inputBorder,
-                    focusedBorder: inputBorder,
-                    enabledBorder: inputBorder,
-                    prefixIcon: Icon(Icons.email, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email address.';
-                    }
-                    final emailRegex = RegExp(
-                      r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,4}$',
-                    );
-                    if (!emailRegex.hasMatch(value)) {
-                      return 'Please enter a valid email address.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Password Input
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Password',
-                    labelStyle: labelTextStyle,
-                    border: inputBorder,
-                    focusedBorder: inputBorder,
-                    enabledBorder: inputBorder,
-                    prefixIcon: Icon(Icons.lock, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password.';
-                    }
-                    if (value.length < 8) {
-                      return 'Password must be at least 8 characters long.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Confirm Password Input
-                TextFormField(
-                  controller: _confirmPasswordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Confirm Password',
-                    labelStyle: labelTextStyle,
-                    border: inputBorder,
-                    focusedBorder: inputBorder,
-                    enabledBorder: inputBorder,
-                    prefixIcon: Icon(Icons.lock, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please confirm your password.';
-                    }
-                    if (value != _passwordController.text.trim()) {
-                      return 'Passwords do not match.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Phone Number Input
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number',
-                    labelStyle: labelTextStyle,
-                    border: inputBorder,
-                    focusedBorder: inputBorder,
-                    enabledBorder: inputBorder,
-                    prefixIcon: Icon(Icons.phone, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your phone number.';
-                    }
-                    //  phone number validation
-                    if (value.length < 10) {
-                      return 'Please enter a valid phone number.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Tax ID Input
-                TextFormField(
-                  controller: _taxIdController,
-                  keyboardType: TextInputType.text,
-                  decoration: const InputDecoration(
-                    labelText: 'Tax ID / Registration Number',
-                    labelStyle: labelTextStyle,
-                    border: inputBorder,
-                    focusedBorder: inputBorder,
-                    enabledBorder: inputBorder,
-                    prefixIcon: Icon(Icons.badge, color: Colors.grey),
-                    // Example icon
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your Tax ID / Registration Number';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-                _isLoading
-                    ? const CircularProgressIndicator(
-                  valueColor:
-                  AlwaysStoppedAnimation<Color>(Colors.white),
-                )
-                    : ElevatedButton(
-                  onPressed: _signUp,
-                  style: registerButtonStyle,
-                  child: const Text('Register'),
-                ),
-                const SizedBox(height: 16),
-                if (_errorMessage.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Text(
-                      _errorMessage,
-                      style: errorTextStyle,
-                      textAlign: TextAlign.center,
+      body: SafeArea(
+        child: Container(
+          constraints: const BoxConstraints.expand(),
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage("assets/png/rightcornergreen.png"),
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(screenPadding),
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    // Removed Logo
+                    //const SizedBox(height: 0), // Adjusted spacing
+
+                    // Title
+                    const SizedBox(height: 60),
+                    const Padding(
+                      padding: EdgeInsets.only(right: 0.01, left: 50.0),
+                      child: Text(
+                        'Sign Up as Recycling Company',  // Add a line break with \n
+                        style: TextStyle(
+                          fontFamily: 'Roboto',  // Replace 'Roboto' with your desired font family
+                          fontSize: 45,          // Adjust the font size as needed
+                          // fontWeight: FontWeight.bold, // Adjust the font weight if necessary
+                          color: Colors.white,  // Set text color to white
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
                     ),
-                  ),
-              ],
+
+// Add this SizedBox to create space under the text
+                    const SizedBox(height: 30),  // Adjust the height as needed
+
+
+                    // Company Name Input
+                    TextFormField(
+                      controller: _companyNameController,
+                      keyboardType: TextInputType.text,
+                      decoration: const InputDecoration(
+                        labelText: 'Company Name',
+                        labelStyle: labelTextStyle,
+                        border: inputBorder,
+                        focusedBorder: inputBorder,
+                        enabledBorder: inputBorder,
+                        prefixIcon: Icon(Icons.business, color: Colors.grey),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your company name.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Email Input
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        labelStyle: labelTextStyle,
+                        border: inputBorder,
+                        focusedBorder: inputBorder,
+                        enabledBorder: inputBorder,
+                        prefixIcon: Icon(Icons.email, color: Colors.grey),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your email address.';
+                        }
+                        final emailRegex = RegExp(
+                          r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,4}$',
+                        );
+                        if (!emailRegex.hasMatch(value)) {
+                          return 'Please enter a valid email address.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Password Input
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Password',
+                        labelStyle: labelTextStyle,
+                        border: inputBorder,
+                        focusedBorder: inputBorder,
+                        enabledBorder: inputBorder,
+                        prefixIcon: Icon(Icons.lock, color: Colors.grey),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your password.';
+                        }
+                        if (value.length < 8) {
+                          return 'Password must be at least 8 characters long.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Confirm Password Input
+                    TextFormField(
+                      controller: _confirmPasswordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Confirm Password',
+                        labelStyle: labelTextStyle,
+                        border: inputBorder,
+                        focusedBorder: inputBorder,
+                        enabledBorder: inputBorder,
+                        prefixIcon: Icon(Icons.lock, color: Colors.grey),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please confirm your password.';
+                        }
+                        if (value != _passwordController.text.trim()) {
+                          return 'Passwords do not match.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Phone Number Input
+                    TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone Number',
+                        labelStyle: labelTextStyle,
+                        border: inputBorder,
+                        focusedBorder: inputBorder,
+                        enabledBorder: inputBorder,
+                        prefixIcon: Icon(Icons.phone, color: Colors.grey),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your phone number.';
+                        }
+                        //  phone number validation
+                        if (value.length < 10) {
+                          return 'Please enter a valid phone number.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Tax ID Input
+                    TextFormField(
+                      controller: _taxIdController,
+                      keyboardType: TextInputType.text,
+                      decoration: const InputDecoration(
+                        labelText: 'Tax ID / Registration Number',
+                        labelStyle: labelTextStyle,
+                        border: inputBorder,
+                        focusedBorder: inputBorder,
+                        enabledBorder: inputBorder,
+                        prefixIcon: Icon(Icons.badge, color: Colors.grey),
+                        // Example icon
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your Tax ID / Registration Number';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    _isLoading
+                        ? const CircularProgressIndicator(
+                      valueColor:
+                      AlwaysStoppedAnimation<Color>(Colors.white),
+                    )
+                        : ElevatedButton(
+                      onPressed: _signUp,
+                      style: registerButtonStyle,
+                      child: const Text('Register'),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_errorMessage.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10),
+                        child: Text(
+                          _errorMessage,
+                          style: errorTextStyle,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -325,4 +350,3 @@ class _RecyclingCompanySignupScreenState
     );
   }
 }
-

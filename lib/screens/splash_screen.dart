@@ -12,31 +12,69 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Use Timer to delay navigation
-    Timer(const Duration(seconds: 1), () {
-      // Navigate to the LoginScreen after 1 second
-      Navigator.of(context).pushReplacementNamed('/login'); // Use named route
+    // Delay navigation by 6 seconds
+    Timer(const Duration(seconds: 6), () {
+      Navigator.of(context).pushReplacementNamed('/login');
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    //  the design of your splash screen ("Hi, Recyclers")
     return Scaffold(
-      backgroundColor:
-      const Color(0xFF85CB33), // Set the background color.  Change this to match your design.
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            // Add your logo or text here
-            Text(
-             'Hi, Recyclers',
-             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-               color: Colors.white,
-             ),
+      body: Container(
+        color: const Color(0xFFFFFFFF), // White background
+        child: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              left: 0,
+              child: Image.asset(
+                'assets/png/leftcornergreen.png',
+                width: 550, // Adjust width and height if needed
+                height: 450,
+                fit: BoxFit.contain, // Make sure it doesn't crop
+                alignment: Alignment.topLeft,
+              ),
             ),
-            // You can add an image here if you have a logo
+
+            // Bottom Right Image
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Image.asset(
+                'assets/png/bottomright.png',
+                width: 550, // adjust size as needed
+                height: 450,
+                fit: BoxFit.contain,
+                alignment: Alignment.bottomRight,
+              ),
+            ),
+
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text(
+                    'Hi,',
+                    style: TextStyle(
+                      color: Color(0xFF000000),
+                      fontFamily: 'Roboto Flex',
+                      fontSize: 50,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Recyclers',
+                    style: TextStyle(
+                      color: Color(0xFF000000),
+                      fontFamily: 'Roboto Flex',
+                      fontSize: 50,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

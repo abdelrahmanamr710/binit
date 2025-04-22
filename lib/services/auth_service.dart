@@ -14,7 +14,6 @@ class AuthService {
     required String userType,
     String? phone, // Make phone optional
     String? taxId, // Make taxId optional
-    String? address,
   }) async {
     try {
       final UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
@@ -23,22 +22,15 @@ class AuthService {
       );
       final User? user = userCredential.user;
       if (user != null) {
-        // Create a UserModel instance.
         final UserModel newUser = UserModel(
           uid: user.uid,
           email: email,
           name: name,
           userType: userType,
-          phone: phone,
-          taxId: taxId,
+          phone: phone, // Store phone
+          taxId: taxId, // Store taxId
         );
-
-        // Convert the UserModel to a JSON map.
-        final Map<String, dynamic> userData = newUser.toJson();
-
-        // Use the set method to create a document with the user's UID.  This will overwrite any existing document with the user's UID.
-        await _firestore.collection('users').doc(user.uid).set(userData);
-
+        await _firestore.collection('users').doc(user.uid).set(newUser.toJson());
         return newUser;
       }
       return null;
@@ -65,12 +57,7 @@ class AuthService {
           Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
           // Ensure that userData is not null and is a map.
           if (userData != null && userData is Map<String, dynamic>) {
-            try {
-              return UserModel.fromJson(userData);
-            } catch (e) {
-              print("Error decoding user data: $e.  Data: $userData");
-              return null; // Or throw an exception if you want to handle it differently
-            }
+            return UserModel.fromJson(userData);
           }
           else{
             print("Error: userData is null or not a map");
@@ -123,6 +110,59 @@ class AuthService {
   // Sign out
   Future<void> signOut() async {
     await _auth.signOut();
+  }
+
+  // Change password
+  Future<void> changePassword({required String email, required String oldPassword, required String newPassword}) async {
+    try {
+      // 1. Re-authenticate the user
+      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: oldPassword,
+      );
+
+      final User? user = userCredential.user;
+
+
+      if (user == null) {
+        throw Exception('User not found.');
+      }
+      // 2. Update the password
+      await user.updatePassword(newPassword);
+
+      print('Password changed successfully.');
+
+    } on FirebaseAuthException catch (e) {
+      print('Error changing password: ${e.message}');
+      switch (e.code) {
+        case 'weak-password':
+          throw Exception('The password is too weak.');
+        case 'requires-recent-login':
+          throw Exception('Requires recent login. Please sign in again.');
+        default:
+          throw Exception('Failed to change password: ${e.message}');
+      }
+    } catch (error) {
+      print('Error changing password: $error');
+      throw Exception('Failed to change password: $error');
+    }
+  }
+
+  // Update User Profile
+  Future<void> updateUserProfile(UserModel user) async {
+    try {
+      // 1. Get a reference to the user document in Firestore.
+      final DocumentReference userRef = _firestore.collection('users').doc(user.uid);
+
+      // 2.  Update the fields.
+      await userRef.update(user.toJson()); //  use the toJson() method of your UserModel
+      print('User profile updated successfully.');
+
+
+    } catch (error) {
+      print('Error updating user profile: $error');
+      throw Exception('Failed to update user profile: $error');
+    }
   }
 }
 
