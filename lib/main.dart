@@ -1,4 +1,3 @@
-// main.dart
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'config/app_theme.dart';
@@ -13,6 +12,7 @@ import 'screens/recyclingCompany_signup_screen.dart'; // Ensure this import is c
 import 'src/pigeon.g.dart';
 import 'screens/binOwner_homescreen.dart';
 import 'screens/recyclingCompany_homescreen.dart';
+import 'screens/binOwner_profile.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,11 +35,12 @@ class BinItApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/signup_as': (context) => const SignUpAs(),
         '/bin_owner_signup': (context) => const BinOwnerSignupScreen(),
-        '/recycling_company_signup': (context) => const RecyclingCompanySignupScreen(), // reusing the signup screen
+        '/recycling_company_signup': (context) => const RecyclingCompanySignupScreen(),
         '/bin_owner_home': (context) => const BinOwnerHomeScreen(userName: "Owner"), // Add this route.
-        'reccycling_company_home': (context) => const RecyclingCompanyHomeScreen(userName: "Company"), // Add this route.'
-
+        '/recycling_company_home': (context) => const RecyclingCompanyHomeScreen(userName: "Company"), // Add this route.'
+        '/bin_owner_profile': (context) => BinOwnerProfile(user: ModalRoute.of(context)!.settings.arguments as UserModel), // corrected route
       },
     );
   }
 }
+
