@@ -111,5 +111,58 @@ class AuthService {
   Future<void> signOut() async {
     await _auth.signOut();
   }
+
+  // Change password
+  Future<void> changePassword({required String email, required String oldPassword, required String newPassword}) async {
+    try {
+      // 1. Re-authenticate the user
+      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: oldPassword,
+      );
+
+      final User? user = userCredential.user;
+
+
+      if (user == null) {
+        throw Exception('User not found.');
+      }
+      // 2. Update the password
+      await user.updatePassword(newPassword);
+
+      print('Password changed successfully.');
+
+    } on FirebaseAuthException catch (e) {
+      print('Error changing password: ${e.message}');
+      switch (e.code) {
+        case 'weak-password':
+          throw Exception('The password is too weak.');
+        case 'requires-recent-login':
+          throw Exception('Requires recent login. Please sign in again.');
+        default:
+          throw Exception('Failed to change password: ${e.message}');
+      }
+    } catch (error) {
+      print('Error changing password: $error');
+      throw Exception('Failed to change password: $error');
+    }
+  }
+
+  // Update User Profile
+  Future<void> updateUserProfile(UserModel user) async {
+    try {
+      // 1. Get a reference to the user document in Firestore.
+      final DocumentReference userRef = _firestore.collection('users').doc(user.uid);
+
+      // 2.  Update the fields.
+      await userRef.update(user.toJson()); //  use the toJson() method of your UserModel
+      print('User profile updated successfully.');
+
+
+    } catch (error) {
+      print('Error updating user profile: $error');
+      throw Exception('Failed to update user profile: $error');
+    }
+  }
 }
 

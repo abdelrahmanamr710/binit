@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
-import 'package:binit/services/auth_service.dart';
+import 'package:binit/services/auth_service.dart'; // Import AuthService
 import 'package:binit/models/user_model.dart';
-import 'package:binit/screens/binOwner_homescreen.dart';
+import 'package:binit/screens/recyclingCompany_homescreen.dart'; // Import the home screen
 
-class BinOwnerSignupScreen extends StatefulWidget {
-  const BinOwnerSignupScreen({super.key});
+class RecyclingCompanySignupScreen extends StatefulWidget {
+  const RecyclingCompanySignupScreen({super.key});
 
   @override
-  _BinOwnerSignupScreenState createState() => _BinOwnerSignupScreenState();
+  _RecyclingCompanySignupScreenState createState() =>
+      _RecyclingCompanySignupScreenState();
 }
 
-class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
+class _RecyclingCompanySignupScreenState
+    extends State<RecyclingCompanySignupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _nameController = TextEditingController();
+  final _companyNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _taxIdController = TextEditingController(); // Added tax ID controller
   final AuthService _authService = AuthService();
   bool _isLoading = false;
   String _errorMessage = '';
@@ -25,7 +29,9 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _nameController.dispose();
+    _companyNameController.dispose();
+    _phoneController.dispose();
+    _taxIdController.dispose(); // Dispose tax ID controller
     super.dispose();
   }
 
@@ -46,19 +52,23 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
         _isLoading = true;
         _errorMessage = '';
       });
-
       try {
+        // Pass the phone and taxId to the signUpWithEmailAndPassword method.
         final UserModel? user = await _authService.signUpWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
-          name: _nameController.text.trim(),
-          userType: 'binOwner',
+          name: _companyNameController.text.trim(),
+          userType: 'recyclingCompany',
+          phone: _phoneController.text.trim(),
+          taxId: _taxIdController.text.trim(), // Include tax ID in the user data
         );
-
         if (user != null) {
+          // Navigate to the recycling company home screen
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (context) => BinOwnerHomeScreen(userName: user.name ?? ""),
+              builder: (context) => RecyclingCompanyHomeScreen(
+                  userName: user.name ??
+                      ""), // Pass the user data, handle null with ""
             ),
           );
         } else {
@@ -71,9 +81,8 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
           _isLoading = false;
           _errorMessage = error.toString();
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $_errorMessage')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $_errorMessage')));
       } finally {
         setState(() {
           _isLoading = false;
@@ -84,30 +93,26 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Figma Styles
     const Color backgroundColor = Colors.white;
     const double screenPadding = 24.0;
-
     const TextStyle titleTextStyle = TextStyle(
-      fontSize: 60,
+      fontSize: 50, // Adjusted title size
       fontWeight: FontWeight.w400,
       color: Colors.white,
       fontFamily: 'Roboto Flex',
     );
-
     const TextStyle labelTextStyle = TextStyle(
       fontSize: 15,
       color: Color(0xFF777777),
       fontFamily: 'Roboto',
       fontWeight: FontWeight.w700,
     );
-
     const OutlineInputBorder inputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(15)),
       borderSide: BorderSide(color: Colors.grey),
     );
-
     const TextStyle errorTextStyle = TextStyle(color: Colors.red, fontSize: 14);
-
     final ButtonStyle registerButtonStyle = ElevatedButton.styleFrom(
       backgroundColor: const Color(0xFF184D47),
       foregroundColor: Colors.white,
@@ -143,55 +148,42 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    // Logo
-                    Image.asset(
-                      'assets/png/rightcornergreen.png',
-                      fit: BoxFit.contain,
-                      height: 100,
-                    ),
-                    const SizedBox(height: 30),
+                    // Removed Logo
+                    const SizedBox(height: 30), // Adjusted spacing
 
                     // Title
                     const Padding(
                       padding: EdgeInsets.only(right: 16.0),
                       child: Text(
-                        'Sign Up as Bin Owner',
-                        style: TextStyle(
-                          fontSize: 50,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white,
-                          fontFamily: 'Roboto Flex',
-                        ),
+                        'Sign Up as Recycling Company',
+                        style: titleTextStyle,
                         textAlign: TextAlign.right,
                       ),
                     ),
-
                     const SizedBox(height: 16),
-
-                    // Name
+                    // Company Name Input
                     TextFormField(
-                      controller: _nameController,
+                      controller: _companyNameController,
                       keyboardType: TextInputType.text,
                       decoration: const InputDecoration(
-                        labelText: 'Name',
+                        labelText: 'Company Name',
                         labelStyle: labelTextStyle,
                         border: inputBorder,
                         focusedBorder: inputBorder,
                         enabledBorder: inputBorder,
-                        prefixIcon: Icon(Icons.person, color: Colors.grey),
+                        prefixIcon: Icon(Icons.business, color: Colors.grey),
                         filled: true,
                         fillColor: Colors.white,
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your name.';
+                          return 'Please enter your company name.';
                         }
                         return null;
                       },
                     ),
                     const SizedBox(height: 16),
-
-                    // Email
+                    // Email Input
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -210,7 +202,8 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                           return 'Please enter your email address.';
                         }
                         final emailRegex = RegExp(
-                            r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,4}$');
+                          r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,4}$',
+                        );
                         if (!emailRegex.hasMatch(value)) {
                           return 'Please enter a valid email address.';
                         }
@@ -218,8 +211,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-
-                    // Password
+                    // Password Input
                     TextFormField(
                       controller: _passwordController,
                       obscureText: true,
@@ -244,8 +236,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-
-                    // Confirm Password
+                    // Confirm Password Input
                     TextFormField(
                       controller: _confirmPasswordController,
                       obscureText: true,
@@ -269,8 +260,56 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16),
+                    // Phone Number Input
+                    TextFormField(
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: 'Phone Number',
+                        labelStyle: labelTextStyle,
+                        border: inputBorder,
+                        focusedBorder: inputBorder,
+                        enabledBorder: inputBorder,
+                        prefixIcon: Icon(Icons.phone, color: Colors.grey),
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your phone number.';
+                        }
+                        //  phone number validation
+                        if (value.length < 10) {
+                          return 'Please enter a valid phone number.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    // Tax ID Input
+                    TextFormField(
+                      controller: _taxIdController,
+                      keyboardType: TextInputType.text,
+                      decoration: const InputDecoration(
+                        labelText: 'Tax ID / Registration Number',
+                        labelStyle: labelTextStyle,
+                        border: inputBorder,
+                        focusedBorder: inputBorder,
+                        enabledBorder: inputBorder,
+                        prefixIcon: Icon(Icons.badge, color: Colors.grey),
+                        // Example icon
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your Tax ID / Registration Number';
+                        }
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: 24),
-
                     _isLoading
                         ? const CircularProgressIndicator(
                       valueColor:
@@ -282,7 +321,6 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                       child: const Text('Register'),
                     ),
                     const SizedBox(height: 16),
-
                     if (_errorMessage.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 10),
