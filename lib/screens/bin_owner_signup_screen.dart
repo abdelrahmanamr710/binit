@@ -56,10 +56,12 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
         );
 
         if (user != null) {
-          Navigator.of(context).pushReplacement(
+          // Use pushAndRemoveUntil to prevent going back to the signup screen
+          Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(
-              builder: (context) => BinOwnerHomeScreen(userName: user.name ?? ""),
+              builder: (context) => BinOwnerHomeScreen(userName: user.name ?? "", user: user),
             ),
+                (route) => false, // Remove all previous routes
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -302,3 +304,4 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
     );
   }
 }
+

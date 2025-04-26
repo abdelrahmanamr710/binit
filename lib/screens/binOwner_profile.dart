@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:binit/services/auth_service.dart'; // Import AuthService.  Make sure this path is correct.
 import 'package:binit/models/user_model.dart'; // Import UserModel.  Make sure this path is correct.
 import 'package:binit/screens/change_password_screen.dart'; // Import ChangePasswordScreen. Make sure this path is correct.
+import 'package:binit/screens/binOwner_homescreen.dart'; // Import the BinOwnerHomeScreen
 
 
 class BinOwnerProfile extends StatefulWidget {
@@ -19,6 +20,7 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
   final AuthService _authService = AuthService();
   bool _isEditing = false; // Track editing state
   String _errorMessage = '';
+  int _currentIndex = 2; // Initialize to 2 for the Profile page
 
   @override
   void initState() {
@@ -283,6 +285,46 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
             ),
           ),
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar( //same bottom nav bar
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard_rounded),
+            label: 'Stock',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_filled),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_rounded),
+            label: 'Profile',
+          ),
+        ],
+        currentIndex: _currentIndex, // Use currentIndex
+        onTap: (int index) {
+          setState(() {
+            _currentIndex = index; // Update the current index
+          });
+          if (index == 2) {
+            //Do nothing, remain on the same page
+          } else if (index == 0||index==1) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => BinOwnerHomeScreen(userName: widget.user.name ?? '', user: widget.user, currentIndex: index),
+              ),
+
+            );
+          }
+        },
+        unselectedItemColor: Colors.white,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.green,
+        elevation: 8.0,
+        selectedIconTheme: const IconThemeData(color: Colors.white),
+        unselectedIconTheme: const IconThemeData(color: Colors.white),
       ),
     );
   }

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:binit/screens/binOwner_profile.dart';
 import 'package:binit/models/user_model.dart'; // Import the UserModel
 
-
 class BinOwnerHomeScreen extends StatelessWidget {
   final String userName;
-  final UserModel? user; // Add the user parameter
-  const BinOwnerHomeScreen({super.key, required this.userName, this.user});
+  final UserModel? user;
+  final int currentIndex; // Add this parameter
+  const BinOwnerHomeScreen({super.key, required this.userName, this.user, this.currentIndex = 1}); // Default to 1 (Home)
 
   @override
   Widget build(BuildContext context) {
@@ -16,22 +16,22 @@ class BinOwnerHomeScreen extends StatelessWidget {
       fontWeight: FontWeight.w600,
       color: Colors.white,
       fontFamily: 'Roboto',
-      decoration: TextDecoration.none, // Add this line to remove underline
+      decoration: TextDecoration.none,
     );
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Bin Owner Home'),
       ),
-      body: Stack( // Changed to Stack to allow positioning
+      body: Stack(
         children: [
-          Positioned( // Added Positioned widget
-            top: 16.0,  // Added top padding
-            left: 16.0, // Added left padding
+          Positioned(
+            top: 16.0,
+            left: 16.0,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               decoration: BoxDecoration(
-                color:Colors.green,
+                color: Colors.green,
                 borderRadius: BorderRadius.circular(25),
               ),
               child: RichText(
@@ -40,7 +40,6 @@ class BinOwnerHomeScreen extends StatelessWidget {
                   children: <TextSpan>[
                     const TextSpan(text: 'Welcome, ', style: welcomeTextStyle),
                     TextSpan(text: userName, style: welcomeTextStyle),
-
                   ],
                 ),
               ),
@@ -63,16 +62,29 @@ class BinOwnerHomeScreen extends StatelessWidget {
             label: 'Profile',
           ),
         ],
+        currentIndex: currentIndex, // Use the currentIndex here
         onTap: (int index) {
           if (index == 2 && user != null) {
-            Navigator.of(context).push(
+            Navigator.of(context).pushReplacement( // Use pushReplacement
               MaterialPageRoute(
                 builder: (context) => BinOwnerProfile(user: user!),
               ),
             );
+          } else if (index == 0) { // added else if
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => BinOwnerHomeScreen(userName: userName, user: user, currentIndex: 0),
+              ),
+            );
+          }
+          else if (index == 1) {
+            Navigator.of(context).pushReplacement( //use pushReplacement
+              MaterialPageRoute(
+                builder: (context) => BinOwnerHomeScreen(userName: userName, user: user, currentIndex: 1),
+              ),
+            );
           }
         },
-        //selectedItemColor: const Color(0xFFF79E1B),
         unselectedItemColor: Colors.white,
         showSelectedLabels: true,
         showUnselectedLabels: true,
