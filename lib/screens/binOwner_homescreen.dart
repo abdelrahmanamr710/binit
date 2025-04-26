@@ -11,7 +11,7 @@ class BinOwnerHomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // Define the text style here
     const TextStyle welcomeTextStyle = TextStyle(
-      fontSize: 20.0,
+      fontSize: 21.0,
       fontWeight: FontWeight.w600,
       color: Colors.white,
       fontFamily: 'Roboto',
