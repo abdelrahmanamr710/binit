@@ -149,18 +149,28 @@ class _RecyclingCompanySignupScreenState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
                     // Removed Logo
-                    const SizedBox(height: 30), // Adjusted spacing
+                    //const SizedBox(height: 0), // Adjusted spacing
 
                     // Title
+                    const SizedBox(height: 60),
                     const Padding(
-                      padding: EdgeInsets.only(right: 16.0),
+                      padding: EdgeInsets.only(right: 0.01, left: 50.0),
                       child: Text(
-                        'Sign Up as Recycling Company',
-                        style: titleTextStyle,
+                        'Sign Up as Recycling Company',  // Add a line break with \n
+                        style: TextStyle(
+                          fontFamily: 'Roboto',  // Replace 'Roboto' with your desired font family
+                          fontSize: 45,          // Adjust the font size as needed
+                          // fontWeight: FontWeight.bold, // Adjust the font weight if necessary
+                          color: Colors.white,  // Set text color to white
+                        ),
                         textAlign: TextAlign.right,
                       ),
                     ),
-                    const SizedBox(height: 16),
+
+// Add this SizedBox to create space under the text
+                    const SizedBox(height: 30),  // Adjust the height as needed
+
+
                     // Company Name Input
                     TextFormField(
                       controller: _companyNameController,

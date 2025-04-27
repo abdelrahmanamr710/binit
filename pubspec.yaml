@@ -68,6 +68,11 @@ flutter:
     - assets/logo/logo.png
     - assets/png/leftcornergreen.png
     - assets/png/rightcornergreen.png
+    - assets/png/bottomright.png
+    - assets/png/bin1.png
+    - assets/png/bin2.png
+    - assets/png/bin3.png
+    - assets/png/profile.png
 
 
 

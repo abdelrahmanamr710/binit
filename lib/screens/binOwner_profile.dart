@@ -2,15 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:binit/services/auth_service.dart'; // Import AuthService.  Make sure this path is correct.
 import 'package:binit/models/user_model.dart'; // Import UserModel.  Make sure this path is correct.
 import 'package:binit/screens/change_password_screen.dart'; // Import ChangePasswordScreen. Make sure this path is correct.
-import 'package:binit/screens/binOwner_homescreen.dart'; // Import the BinOwnerHomeScreen
-
+import 'package:binit/screens/binOwner_homescreen.dart'; // Import BinOwnerHomeScreen. Make sure this path is correct.
 
 class BinOwnerProfile extends StatefulWidget {
   final UserModel user;
   const BinOwnerProfile({super.key, required this.user});
 
-@override
-_BinOwnerProfileState createState() => _BinOwnerProfileState();
+  @override
+  _BinOwnerProfileState createState() => _BinOwnerProfileState();
 }
 
 class _BinOwnerProfileState extends State<BinOwnerProfile> {
@@ -20,7 +19,7 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
   final AuthService _authService = AuthService();
   bool _isEditing = false; // Track editing state
   String _errorMessage = '';
-  int _currentIndex = 2; // Initialize to 2 for the Profile page
+  int _currentIndex = 2; // Initialize the current index
 
   @override
   void initState() {
@@ -85,248 +84,270 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
   bool _isLoading = false;
   @override
   Widget build(BuildContext context) {
-    // Figma Styles (as close as possible without complete Figma code)
-    const Color backgroundColor = Colors.white;
-    const double screenPadding = 24.0;
-    const TextStyle titleTextStyle = TextStyle(
-      fontSize: 24,
-      fontWeight: FontWeight.bold,
-      color: Colors.black,
-    );
-    const TextStyle labelTextStyle = TextStyle(
-      fontSize: 16,
-      color: Colors.grey,
-    );
-    const OutlineInputBorder inputBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.all(Radius.circular(15)),
-      borderSide: BorderSide(color: Colors.grey),
-    );
-    const TextStyle errorTextStyle = TextStyle(
-      color: Colors.red,
-      fontSize: 14,
-    );
-    final ButtonStyle editButtonStyle = ElevatedButton.styleFrom(
-      backgroundColor: Colors.blue,
-      foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      textStyle: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w500,
-      ),
-    );
-    final ButtonStyle saveButtonStyle = ElevatedButton.styleFrom(
-      backgroundColor: Colors.green,
-      foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      textStyle: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w500,
-      ),
-    );
-    final ButtonStyle changePasswordButtonStyle = ElevatedButton.styleFrom(
-      backgroundColor: Colors.orange,
-      foregroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      textStyle: const TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.w500,
-      ),
-    );
-
-
     return Scaffold(
-      backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: const Text('Profile'),
+        backgroundColor: const Color(0xFF1A524F), // Dark green background
+        title: const Text('Profile', style: TextStyle(color: Colors.white)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.of(context).pop(); // Go back to the previous screen
+          },
+        ),
         actions: [
-          if (!_isEditing) // Show Edit button when not editing
+          if (!_isEditing)
             IconButton(
-              icon: const Icon(Icons.edit),
+              icon: const Icon(Icons.edit, color: Colors.white),
               onPressed: _toggleEditing,
             ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(screenPadding),
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                //  Logo
-                Image.asset(
-                  'assets/logo/logo.png', //  path
-                  fit: BoxFit.contain,
-                  height: 100, // added height
-                ),
-                const SizedBox(height: 30),
-                Text(
-                  'Bin Owner Profile',
-                  style: titleTextStyle,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                // Name Input
-                TextFormField(
-                  controller: _nameController,
-                  keyboardType: TextInputType.text,
-                  decoration: const InputDecoration(
-                    labelText: 'Name',
-                    labelStyle: labelTextStyle,
-                    border: inputBorder,
-                    focusedBorder: inputBorder,
-                    enabledBorder: inputBorder,
-                    prefixIcon: Icon(Icons.person, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your name.';
-                    }
-                    return null;
-                  },
-                  enabled: _isEditing, // Enable editing only when _isEditing is true
-                ),
-                const SizedBox(height: 16),
-                // Email Input
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    labelStyle: labelTextStyle,
-                    border: inputBorder,
-                    focusedBorder: inputBorder,
-                    enabledBorder: inputBorder,
-                    prefixIcon: Icon(Icons.email, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.white,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email address.';
-                    }
-                    final emailRegex =
-                    RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,4}$');
-                    if (!emailRegex.hasMatch(value)) {
-                      return 'Please enter a valid email address.';
-                    }
-                    return null;
-                  },
-                  enabled: _isEditing, // Enable editing only when _isEditing is true
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => ChangePasswordScreen(user: widget.user),
-                      ),
-                    );
-                  },
-                  style: changePasswordButtonStyle,
-                  child: const Text('Change Password'),
-                ),
-                const SizedBox(height: 24),
-                if (_isEditing) // Show Save and Cancel buttons only when editing
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _saveChanges,
-                        style: saveButtonStyle,
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                          valueColor:
-                          AlwaysStoppedAnimation<Color>(Colors.white),
-                        )
-                            : const Text('Save'),
-                      ),
-                      ElevatedButton(
-                        onPressed: _toggleEditing,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          textStyle: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        child: const Text('Cancel'),
-                      ),
-                    ],
-                  ),
-                if (_errorMessage.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: Text(
-                      _errorMessage,
-                      style: errorTextStyle,
-                      textAlign: TextAlign.center,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Center(
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  Container(
+                    width: 120.0,
+                    height: 120.0,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: const CircleAvatar(
+                      radius: 60.0,
+                      backgroundImage: AssetImage('assets/png/profile.png'), // Use the profile.png asset
                     ),
                   ),
-              ],
+                  if (_isEditing)
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.all(4.0),
+                        child: Icon(Icons.camera_alt, size: 20.0, color: Colors.grey),
+                      ),
+                    ),
+                ],
+              ),
             ),
+            const SizedBox(height: 30.0),
+            Text(
+              'Name',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 8.0),
+            TextFormField(
+              controller: _nameController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+              ),
+            ),
+            const SizedBox(height: 20.0),
+            Text(
+              'Email',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 8.0),
+            TextFormField(
+              controller: _emailController,
+              enabled: _isEditing,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+              ),
+            ),
+            const SizedBox(height: 20.0),
+            Text(
+              'Password',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 8.0),
+            TextFormField(
+              obscureText: true,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+              ),
+              readOnly: true, // Password is not directly editable here
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => ChangePasswordScreen(user: widget.user),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 20.0),
+            Text(
+              'Date of Birth',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 8.0),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(10.0),
+                color: Colors.grey.shade100,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '28/01/2004', // Placeholder for date of birth
+                    style: TextStyle(color: Colors.black87),
+                  ),
+                  if (_isEditing)
+                    const Icon(Icons.calendar_today_outlined, color: Colors.grey),
+                  if (!_isEditing)
+                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20.0),
+            Text(
+              'Country/Region',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+            ),
+            const SizedBox(height: 8.0),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(10.0),
+                color: Colors.grey.shade100,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Egypt', // Placeholder for country/region
+                    style: TextStyle(color: Colors.black87),
+                  ),
+                  if (_isEditing)
+                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                  if (!_isEditing)
+                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30.0),
+            if (_isEditing)
+              ElevatedButton(
+                onPressed: _isLoading ? null : _saveChanges,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1A524F), // Dark green save button
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
+                    : const Text('Save changes', style: TextStyle(fontSize: 16.0)),
+              ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A524F), // Background color of the nav bar
+          borderRadius: BorderRadius.circular(20), // Rounded corners
+        ),
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), // Add some margin
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 5.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavBarItem(
+                icon: Icons.dashboard_rounded,
+                label: 'Stock',
+                isSelected: _currentIndex == 0,
+                onTap: () {
+                  setState(() {
+                    _currentIndex = 0;
+                  });
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => BinOwnerHomeScreen(userName: widget.user.name ?? '', user: widget.user, currentIndex: 0),
+                    ),
+                  );
+                },
+              ),
+              _buildNavBarItem(
+                icon: Icons.home_filled,
+                label: 'Home',
+                isSelected: _currentIndex == 1,
+                onTap: () {
+                  setState(() {
+                    _currentIndex = 1;
+                  });
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => BinOwnerHomeScreen(userName: widget.user.name ?? '', user: widget.user, currentIndex: 1),
+                    ),
+                  );
+                },
+              ),
+              _buildNavBarItem(
+                icon: Icons.person_rounded,
+                label: 'Profile',
+                isSelected: _currentIndex == 2,
+                onTap: () {
+                  setState(() {
+                    _currentIndex = 2;
+                  });
+                  // Do nothing, remain on the same page
+                },
+              ),
+            ],
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar( //same bottom nav bar
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_rounded),
-            label: 'Stock',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_filled),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_rounded),
-            label: 'Profile',
-          ),
-        ],
-        currentIndex: _currentIndex, // Use currentIndex
-        onTap: (int index) {
-          setState(() {
-            _currentIndex = index; // Update the current index
-          });
-          if (index == 2) {
-            //Do nothing, remain on the same page
-          } else if (index == 0||index==1) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (context) => BinOwnerHomeScreen(userName: widget.user.name ?? '', user: widget.user, currentIndex: index),
-              ),
+    );
+  }
 
-            );
-          }
-        },
-        unselectedItemColor: Colors.white,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.green,
-        elevation: 8.0,
-        selectedIconTheme: const IconThemeData(color: Colors.white),
-        unselectedIconTheme: const IconThemeData(color: Colors.white),
+  Widget _buildNavBarItem({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final Color color = isSelected ? Colors.white : Colors.grey[300]!;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(15),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(color: color, fontSize: 12),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
-
