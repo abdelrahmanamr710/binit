@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:binit/services/auth_service.dart';
-import 'package:binit/models/user_model.dart';
-import 'package:binit/screens/binOwner_homescreen.dart';
+import 'package:binit/services/auth_service.dart'; // Import AuthService
+import 'package:binit/models/user_model.dart'; // Import UserModel
+import 'package:binit/screens/binOwner_homescreen.dart'; // Import the BinOwnerHomeScreen
 
 class BinOwnerSignupScreen extends StatefulWidget {
   const BinOwnerSignupScreen({super.key});
@@ -16,6 +16,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _nameController = TextEditingController();
+  //final _addressController = TextEditingController(); // Removed address controller
   final AuthService _authService = AuthService();
   bool _isLoading = false;
   String _errorMessage = '';
@@ -26,6 +27,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _nameController.dispose();
+    //_addressController.dispose(); // Removed address controller
     super.dispose();
   }
 
@@ -46,22 +48,22 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
         _isLoading = true;
         _errorMessage = '';
       });
-
       try {
+        // Pass the address to the signUpWithEmailAndPassword method.
         final UserModel? user = await _authService.signUpWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
           name: _nameController.text.trim(),
           userType: 'binOwner',
+          //address: _addressController.text.trim(), // Removed address from user data
         );
-
         if (user != null) {
-          // Use pushAndRemoveUntil to prevent going back to the signup screen
-          Navigator.of(context).pushAndRemoveUntil(
+          // Navigate to the BinOwnerHomeScreen after successful signup
+          Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (context) => BinOwnerHomeScreen(userName: user.name ?? "", user: user),
+              builder: (context) =>
+                  BinOwnerHomeScreen(userName: user.name ?? ""), // Pass the user name
             ),
-                (route) => false, // Remove all previous routes
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -88,28 +90,23 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
   Widget build(BuildContext context) {
     const Color backgroundColor = Colors.white;
     const double screenPadding = 24.0;
-
     const TextStyle titleTextStyle = TextStyle(
       fontSize: 60,
       fontWeight: FontWeight.w400,
       color: Colors.white,
       fontFamily: 'Roboto Flex',
     );
-
     const TextStyle labelTextStyle = TextStyle(
       fontSize: 15,
       color: Color(0xFF777777),
       fontFamily: 'Roboto',
       fontWeight: FontWeight.w700,
     );
-
     const OutlineInputBorder inputBorder = OutlineInputBorder(
       borderRadius: BorderRadius.all(Radius.circular(15)),
       borderSide: BorderSide(color: Colors.grey),
     );
-
     const TextStyle errorTextStyle = TextStyle(color: Colors.red, fontSize: 14);
-
     final ButtonStyle registerButtonStyle = ElevatedButton.styleFrom(
       backgroundColor: const Color(0xFF184D47),
       foregroundColor: Colors.white,
@@ -147,30 +144,28 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                   children: <Widget>[
                     // Logo
                     Image.asset(
-                      'assets/png/rightcornergreen.png',
+                      'assets/png/rightcornergreen.png', // path
                       fit: BoxFit.contain,
-                      height: 100,
+                      height: 160, // added height
                     ),
                     const SizedBox(height: 30),
-
-                    // Title
                     const Padding(
-                      padding: EdgeInsets.only(right: 16.0),
+                      padding: EdgeInsets.only(right: 0.01, left: 50.0),
                       child: Text(
-                        'Sign Up as Bin Owner',
+                        'Sign Up as Bin Owner',  // Add a line break with \n
                         style: TextStyle(
-                          fontSize: 50,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white,
-                          fontFamily: 'Roboto Flex',
+                          fontFamily: 'Roboto',  // Replace 'Roboto' with your desired font family
+                          fontSize: 55,          // Adjust the font size as needed
+                          // fontWeight: FontWeight.bold, // Adjust the font weight if necessary
+                          color: Colors.white,  // Set text color to white
                         ),
                         textAlign: TextAlign.right,
                       ),
                     ),
+                    const SizedBox(height: 30),  // Adjust the height as needed
 
-                    const SizedBox(height: 16),
 
-                    // Name
+                    // Name Input
                     TextFormField(
                       controller: _nameController,
                       keyboardType: TextInputType.text,
@@ -192,8 +187,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-
-                    // Email
+                    // Email Input
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
@@ -211,8 +205,8 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your email address.';
                         }
-                        final emailRegex = RegExp(
-                            r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,4}$');
+                        final emailRegex =
+                        RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[\w-]{2,4}$');
                         if (!emailRegex.hasMatch(value)) {
                           return 'Please enter a valid email address.';
                         }
@@ -220,8 +214,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-
-                    // Password
+                    // Password Input
                     TextFormField(
                       controller: _passwordController,
                       obscureText: true,
@@ -246,8 +239,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                       },
                     ),
                     const SizedBox(height: 16),
-
-                    // Confirm Password
+                    // Confirm Password Input
                     TextFormField(
                       controller: _confirmPasswordController,
                       obscureText: true,
@@ -272,7 +264,6 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                       },
                     ),
                     const SizedBox(height: 24),
-
                     _isLoading
                         ? const CircularProgressIndicator(
                       valueColor:
@@ -284,7 +275,6 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                       child: const Text('Register'),
                     ),
                     const SizedBox(height: 16),
-
                     if (_errorMessage.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 10),

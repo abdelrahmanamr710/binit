@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:binit/services/auth_service.dart'; // Import AuthService.  Make sure this path is correct.
 import 'package:binit/models/user_model.dart'; // Import UserModel.  Make sure this path is correct.
 import 'package:binit/screens/change_password_screen.dart'; // Import ChangePasswordScreen. Make sure this path is correct.
-import 'package:binit/screens/binOwner_homescreen.dart'; // Import the BinOwnerHomeScreen
-
+import 'package:binit/screens/binOwner_homescreen.dart'; // Import BinOwnerHomeScreen. Make sure this path is correct.
 
 class BinOwnerProfile extends StatefulWidget {
   final UserModel user;
@@ -20,7 +19,7 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
   final AuthService _authService = AuthService();
   bool _isEditing = false; // Track editing state
   String _errorMessage = '';
-  int _currentIndex = 2; // Initialize to 2 for the Profile page
+  int _currentIndex = 2; // Initialize the current index
 
   @override
   void initState() {
