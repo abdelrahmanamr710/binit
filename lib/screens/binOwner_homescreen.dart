@@ -5,7 +5,8 @@ import 'package:binit/models/user_model.dart'; // Import the UserModel
 class BinOwnerHomeScreen extends StatelessWidget {
   final String userName;
   final UserModel? user; // Add the user parameter
-  const BinOwnerHomeScreen({super.key, required this.userName, this.user});
+  final int currentIndex;
+  const BinOwnerHomeScreen({super.key, required this.userName, this.user, this.currentIndex=1});
 
   @override
   Widget build(BuildContext context) {
@@ -226,11 +227,25 @@ class BinOwnerHomeScreen extends StatelessWidget {
             label: 'Profile',
           ),
         ],
+        currentIndex: currentIndex, // Use the currentIndex here
         onTap: (int index) {
           if (index == 2 && user != null) {
-            Navigator.of(context).push(
+            Navigator.of(context).pushReplacement( // Use pushReplacement
               MaterialPageRoute(
                 builder: (context) => BinOwnerProfile(user: user!),
+              ),
+            );
+          } else if (index == 0) { // added else if
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => BinOwnerHomeScreen(userName: userName, user: user, currentIndex: 0),
+              ),
+            );
+          }
+          else if (index == 1) {
+            Navigator.of(context).pushReplacement( //use pushReplacement
+              MaterialPageRoute(
+                builder: (context) => BinOwnerHomeScreen(userName: userName, user: user, currentIndex: 1),
               ),
             );
           }
