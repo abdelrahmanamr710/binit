@@ -3,7 +3,7 @@ import 'package:binit/services/auth_service.dart'; // Import AuthService.  Make 
 import 'package:binit/models/user_model.dart'; // Import UserModel.  Make sure this path is correct.
 import 'package:binit/screens/change_password_screen.dart'; // Import ChangePasswordScreen. Make sure this path is correct.
 import 'package:binit/screens/binOwner_homescreen.dart'; // Import BinOwnerHomeScreen. Make sure this path is correct.
-
+import 'package:binit/screens/binOwner_stock.dart';
 class BinOwnerProfile extends StatefulWidget {
   final UserModel user;
   const BinOwnerProfile({super.key, required this.user});
@@ -285,7 +285,7 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                   });
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
-                      builder: (context) => BinOwnerHomeScreen(userName: widget.user.name ?? '', user: widget.user, currentIndex: 0),
+                      builder: (context) => BinOwnerStockScreen(userName: widget.user.name ?? '', user: widget.user, currentIndex: 0),
                     ),
                   );
                 },

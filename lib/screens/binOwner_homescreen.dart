@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:binit/screens/binOwner_profile.dart';
 import 'package:binit/models/user_model.dart'; // Import the UserModel
+import 'package:binit/screens/binOwner_stock.dart';
+
 
 class BinOwnerHomeScreen extends StatelessWidget {
   final String userName;
@@ -178,7 +180,7 @@ class BinOwnerHomeScreen extends StatelessWidget {
                   if (currentIndex != 0) {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
-                        builder: (context) => BinOwnerHomeScreen(userName: userName, user: user, currentIndex: 0),
+                        builder: (context) => BinOwnerStockScreen(userName: userName, user: user, currentIndex: 0),
                       ),
                     );
                   }
