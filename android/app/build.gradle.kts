@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.sams.binit.binit"
-    compileSdk = 34 // Explicitly set to the latest stable SDK
+    compileSdk = 35 // Explicitly set to the latest stable SDK
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17 // Use Java 17
