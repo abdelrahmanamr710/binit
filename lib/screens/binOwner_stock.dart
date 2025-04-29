@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:binit/screens/binOwner_profile.dart';
 import 'package:binit/models/user_model.dart'; // Import the UserModel
 import 'package:binit/screens/binOwner_homescreen.dart'; // Import the HomeScreen
+import 'package:binit/screens/binOwner_sell.dart'; // Import the SellScreen
 
 class BinOwnerStockScreen extends StatelessWidget {
   final String userName;
@@ -27,24 +28,41 @@ class BinOwnerStockScreen extends StatelessWidget {
         centerTitle: false, // Align title to the left if needed
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: const Center(
-          child: Text(
-            'Stock Screen Content', // Placeholder for the main content
-            style: TextStyle(fontSize: 20),
-          ),
+        padding: const EdgeInsets.all(16.0), // Add padding to the content
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Center(
+              child: Text(
+                'Stock Screen Content', // Placeholder for the main content
+                style: TextStyle(fontSize: 20),
+              ),
+            ),
+            SizedBox(height: 20), // Space between text and button
+            ElevatedButton(
+              onPressed: () {
+                // Navigate to the same screen (for demonstration)
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => BinOwnerSell(userName: userName, user: user,),
+                  ),
+                );
+              },
+              child: const Text('Go to Stock Screen'),
+            ),
+          ],
         ),
       ),
       // Bottom Navigation Bar
       bottomNavigationBar: Container(
-        height: 56, // Consistent height for bottom navigation
-        decoration: const BoxDecoration(
-          color: Color(0xFF1A524F), // Darker teal bottom navigation color
-          borderRadius: BorderRadius.all(Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A524F), // Background color of the nav bar
+          borderRadius: BorderRadius.circular(20), // Rounded corners
         ),
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), // Add some margin
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 5.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: <Widget>[

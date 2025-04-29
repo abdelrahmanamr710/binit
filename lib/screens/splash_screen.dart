@@ -13,7 +13,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     // Delay navigation by 6 seconds
-    Timer(const Duration(seconds: 6), () {
+    Timer(const Duration(seconds: 3), () {
       Navigator.of(context).pushReplacementNamed('/login');
     });
   }

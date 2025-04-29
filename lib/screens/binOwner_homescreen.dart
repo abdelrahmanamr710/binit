@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:binit/screens/binOwner_profile.dart';
-import 'package:binit/models/user_model.dart'; // Import the UserModel
+import 'package:binit/models/user_model.dart';
 import 'package:binit/screens/binOwner_stock.dart';
-
 
 class BinOwnerHomeScreen extends StatelessWidget {
   final String userName;
-  final UserModel? user; // Add the user parameter
+  final UserModel? user;
   final int currentIndex;
-  const BinOwnerHomeScreen({super.key, required this.userName, this.user, this.currentIndex = 1});
+  const BinOwnerHomeScreen(
+      {super.key, required this.userName, this.user, this.currentIndex = 1});
 
-  Widget _buildBinWithSingleButton(String binLabel, String binImage, String binType) {
+  Widget _buildBinWithSingleButton(
+      String binLabel, String binImage, String binType) {
     return Column(
       children: [
         Text(
@@ -32,7 +33,8 @@ class BinOwnerHomeScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8.0),
-        SizedBox( // Use SizedBox to control the width and center the button
+        SizedBox(
+          // Use SizedBox to control the width and center the button
           width: 100.0, // Match the width of the bin container
           child: ElevatedButton(
             onPressed: () {
@@ -44,8 +46,10 @@ class BinOwnerHomeScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20.0),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              textStyle: const TextStyle(
+                  fontSize: 16, fontWeight: FontWeight.w500),
             ),
             child: const Text('Empty'),
           ),
@@ -116,11 +120,11 @@ class BinOwnerHomeScreen extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              _buildBinWithSingleButton(
-                                  'Bin 1 Plastic', 'assets/png/bin1.png', 'Plastic'),
+                              _buildBinWithSingleButton('Bin 1 Plastic',
+                                  'assets/png/bin1.png', 'Plastic'),
                               const SizedBox(width: 5), // Minimal space between bins
-                              _buildBinWithSingleButton(
-                                  'Bin 1 Metal', 'assets/png/bin2.png', 'Metal'),
+                              _buildBinWithSingleButton('Bin 1 Metal',
+                                  'assets/png/bin2.png', 'Metal'),
                             ],
                           ),
                         ],
@@ -142,11 +146,11 @@ class BinOwnerHomeScreen extends StatelessWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
-                              _buildBinWithSingleButton(
-                                  'Bin 2 Plastic', 'assets/png/bin1.png', 'Plastic'),
+                              _buildBinWithSingleButton('Bin 2 Plastic',
+                                  'assets/png/bin1.png', 'Plastic'),
                               const SizedBox(width: 5), // Minimal space between bins
-                              _buildBinWithSingleButton(
-                                  'Bin 2 Metal', 'assets/png/bin2.png', 'Metal'),
+                              _buildBinWithSingleButton('Bin 2 Metal',
+                                  'assets/png/bin2.png', 'Metal'),
                             ],
                           ),
                         ],
@@ -161,14 +165,13 @@ class BinOwnerHomeScreen extends StatelessWidget {
       ),
       // Bottom Navigation Bar
       bottomNavigationBar: Container(
-        height: 56, // Consistent height for bottom navigation
-        decoration: const BoxDecoration(
-          color: Color(0xFF1A524F), // Darker teal bottom navigation color
-          borderRadius: BorderRadius.all(Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A524F), // Background color of the nav bar
+          borderRadius: BorderRadius.circular(20), // Rounded corners
         ),
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), // Add some margin
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 5.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: <Widget>[
@@ -180,7 +183,10 @@ class BinOwnerHomeScreen extends StatelessWidget {
                   if (currentIndex != 0) {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
-                        builder: (context) => BinOwnerStockScreen(userName: userName, user: user, currentIndex: 0),
+                        builder: (context) => BinOwnerStockScreen(
+                            userName: userName,
+                            user: user,
+                            currentIndex: 0),
                       ),
                     );
                   }
@@ -194,7 +200,10 @@ class BinOwnerHomeScreen extends StatelessWidget {
                   if (currentIndex != 1) {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
-                        builder: (context) => BinOwnerHomeScreen(userName: userName, user: user, currentIndex: 1),
+                        builder: (context) => BinOwnerHomeScreen(
+                            userName: userName,
+                            user: user,
+                            currentIndex: 1),
                       ),
                     );
                   }
@@ -208,7 +217,8 @@ class BinOwnerHomeScreen extends StatelessWidget {
                   if (currentIndex != 2 && user != null) {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
-                        builder: (context) => BinOwnerProfile(user: user!),
+                        builder: (context) =>
+                            BinOwnerProfile(user: user!),
                       ),
                     );
                   }
@@ -231,14 +241,14 @@ class BinOwnerHomeScreen extends StatelessWidget {
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
+      borderRadius: BorderRadius.circular(10),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: color),
-            const SizedBox(height: 2),
+            const SizedBox(height: 1),
             Text(
               label,
               style: TextStyle(color: color, fontSize: 12),

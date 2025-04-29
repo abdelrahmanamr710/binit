@@ -14,7 +14,6 @@ class BinOwnerProfile extends StatefulWidget {
 
 class _BinOwnerProfileState extends State<BinOwnerProfile> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
   final _nameController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isEditing = false; // Track editing state
@@ -25,13 +24,11 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
   void initState() {
     super.initState();
     // Initialize the text controllers with the user's current values.
-    _emailController.text = widget.user.email ?? '';
     _nameController.text = widget.user.name ?? '';
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
     _nameController.dispose();
     super.dispose();
   }
@@ -52,7 +49,7 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
         // Update user data.
         UserModel updatedUser = UserModel(
           uid: widget.user.uid, // Keep the original UID
-          email: _emailController.text.trim(),
+          email: widget.user.email, //DO NOT CHANGE EMAIL
           name: _nameController.text.trim(),
           userType: widget.user.userType, // Keep the user type
         );
@@ -146,22 +143,6 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
             const SizedBox(height: 8.0),
             TextFormField(
               controller: _nameController,
-              enabled: _isEditing,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-              ),
-            ),
-            const SizedBox(height: 20.0),
-            Text(
-              'Email',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 8.0),
-            TextFormField(
-              controller: _emailController,
               enabled: _isEditing,
               decoration: InputDecoration(
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
@@ -351,3 +332,4 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
     );
   }
 }
+
