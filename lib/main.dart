@@ -36,7 +36,7 @@ class BinItApp extends StatelessWidget {
         '/signup_as': (context) => const SignUpAs(),
         '/bin_owner_signup': (context) => const BinOwnerSignupScreen(),
         '/recycling_company_signup': (context) => const RecyclingCompanySignupScreen(),
-        '/bin_owner_home': (context) => const BinOwnerHomeScreen(userName: "Owner"), // Add this route.
+        '/bin_owner_home': (context) => const BinOwnerHomeScreen(), // Add this route.
         '/recycling_company_home': (context) => const RecyclingCompanyHomeScreen(userName: "Company"), // Add this route.'
         '/bin_owner_profile': (context) => BinOwnerProfile(user: ModalRoute.of(context)!.settings.arguments as UserModel), // corrected route
       },

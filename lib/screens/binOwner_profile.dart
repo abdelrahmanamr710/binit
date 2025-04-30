@@ -3,7 +3,8 @@ import 'package:binit/services/auth_service.dart'; // Import AuthService.  Make 
 import 'package:binit/models/user_model.dart'; // Import UserModel.  Make sure this path is correct.
 import 'package:binit/screens/change_password_screen.dart'; // Import ChangePasswordScreen. Make sure this path is correct.
 import 'package:binit/screens/binOwner_homescreen.dart'; // Import BinOwnerHomeScreen. Make sure this path is correct.
-
+import 'package:binit/screens/binOwner_stock.dart';
+import 'package:binit/screens/binOwner_orders.dart';
 class BinOwnerProfile extends StatefulWidget {
   final UserModel user;
   const BinOwnerProfile({super.key, required this.user});
@@ -14,7 +15,6 @@ class BinOwnerProfile extends StatefulWidget {
 
 class _BinOwnerProfileState extends State<BinOwnerProfile> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
   final _nameController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isEditing = false; // Track editing state
@@ -25,13 +25,11 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
   void initState() {
     super.initState();
     // Initialize the text controllers with the user's current values.
-    _emailController.text = widget.user.email ?? '';
     _nameController.text = widget.user.name ?? '';
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
     _nameController.dispose();
     super.dispose();
   }
@@ -52,7 +50,7 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
         // Update user data.
         UserModel updatedUser = UserModel(
           uid: widget.user.uid, // Keep the original UID
-          email: _emailController.text.trim(),
+          email: widget.user.email, //DO NOT CHANGE EMAIL
           name: _nameController.text.trim(),
           userType: widget.user.userType, // Keep the user type
         );
@@ -88,12 +86,7 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A524F), // Dark green background
         title: const Text('Profile', style: TextStyle(color: Colors.white)),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.of(context).pop(); // Go back to the previous screen
-          },
-        ),
+
         actions: [
           if (!_isEditing)
             IconButton(
@@ -146,22 +139,6 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
             const SizedBox(height: 8.0),
             TextFormField(
               controller: _nameController,
-              enabled: _isEditing,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-              ),
-            ),
-            const SizedBox(height: 20.0),
-            Text(
-              'Email',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 8.0),
-            TextFormField(
-              controller: _emailController,
               enabled: _isEditing,
               decoration: InputDecoration(
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
@@ -247,6 +224,23 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                 ],
               ),
             ),
+
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => BinOwnerOrders(userId: widget.user.uid??""),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF1A524F), // Dark green save button
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
+              ),
+              child: const Text('Go to Bin Owner Orders', style: TextStyle(fontSize: 16.0)),),
             const SizedBox(height: 30.0),
             if (_isEditing)
               ElevatedButton(
@@ -260,6 +254,7 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                 child: _isLoading
                     ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
                     : const Text('Save changes', style: TextStyle(fontSize: 16.0)),
+
               ),
           ],
         ),
@@ -285,7 +280,7 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                   });
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
-                      builder: (context) => BinOwnerHomeScreen(userName: widget.user.name ?? '', user: widget.user, currentIndex: 0),
+                      builder: (context) => BinOwnerStockScreen(userName: widget.user.name ?? '', user: widget.user, currentIndex: 0),
                     ),
                   );
                 },
@@ -300,7 +295,7 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                   });
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(
-                      builder: (context) => BinOwnerHomeScreen(userName: widget.user.name ?? '', user: widget.user, currentIndex: 1),
+                      builder: (context) => BinOwnerHomeScreen(currentIndex: 1),
                     ),
                   );
                 },
@@ -351,3 +346,4 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
     );
   }
 }
+
