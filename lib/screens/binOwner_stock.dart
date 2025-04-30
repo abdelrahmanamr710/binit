@@ -141,7 +141,7 @@ class BinOwnerStockScreen extends StatelessWidget {
           'Current Stock', // Title of the page
           style: TextStyle(
             color: Colors.white, // Title color
-            fontSize: 18,
+            fontSize: 27,
             fontWeight: FontWeight.w500,
           ),
         ),

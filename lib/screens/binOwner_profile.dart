@@ -5,6 +5,7 @@ import 'package:binit/screens/change_password_screen.dart'; // Import ChangePass
 import 'package:binit/screens/binOwner_homescreen.dart'; // Import BinOwnerHomeScreen. Make sure this path is correct.
 import 'package:binit/screens/binOwner_stock.dart';
 import 'package:binit/screens/binOwner_orders.dart';
+
 class BinOwnerProfile extends StatefulWidget {
   final UserModel user;
   const BinOwnerProfile({super.key, required this.user});
@@ -85,15 +86,15 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A524F), // Dark green background
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
         title: const Text('Profile', style: TextStyle(color: Colors.white)),
-
-        actions: [
-          if (!_isEditing)
-            IconButton(
-              icon: const Icon(Icons.edit, color: Colors.white),
-              onPressed: _toggleEditing,
-            ),
-        ],
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -224,13 +225,12 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                 ],
               ),
             ),
-
             const SizedBox(height: 10),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => BinOwnerOrders(userId: widget.user.uid??""),
+                    builder: (context) => BinOwnerOrders(userId: widget.user.uid ?? ""),
                   ),
                 );
               },
@@ -240,7 +240,8 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
                 padding: const EdgeInsets.symmetric(vertical: 12.0),
               ),
-              child: const Text('Go to Bin Owner Orders', style: TextStyle(fontSize: 16.0)),),
+              child: const Text('Go to Bin Owner Orders', style: TextStyle(fontSize: 16.0)),
+            ),
             const SizedBox(height: 30.0),
             if (_isEditing)
               ElevatedButton(
@@ -254,7 +255,6 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                 child: _isLoading
                     ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
                     : const Text('Save changes', style: TextStyle(fontSize: 16.0)),
-
               ),
           ],
         ),
@@ -346,4 +346,3 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
     );
   }
 }
-
