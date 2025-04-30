@@ -42,8 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
           if (user.userType == 'binOwner') {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
-                builder: (context) => BinOwnerHomeScreen(userName: user.name ??
-                    "", user: user,), // Pass the user object
+                builder: (context) => BinOwnerHomeScreen(), // Pass the user object
               ),
             );
           } else if (user.userType == 'recyclingCompany') {

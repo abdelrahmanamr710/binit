@@ -60,8 +60,7 @@ class SellDoneState extends State<SellDone> {
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => BinOwnerHomeScreen(
-                                    userName: widget.userName,  // Pass the userName
-                                    user: widget.user,        // Pass the user object
+                                           // Pass the user object
                                   ),
                                 ),
                               );

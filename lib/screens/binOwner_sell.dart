@@ -34,7 +34,7 @@ class SellFormCubit extends Cubit<Map<String, dynamic>> {
         'pickupAddress': state['pickupAddress'],
         'userId': FirebaseAuth.instance.currentUser?.uid,
         'status': 'pending',
-        'createdAt': FieldValue.serverTimestamp(),
+        'date': FieldValue.serverTimestamp(),
       });
       emit({});
       print('Form data submitted successfully!');

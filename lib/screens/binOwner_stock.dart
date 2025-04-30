@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:binit/screens/binOwner_profile.dart';
 import 'package:binit/models/user_model.dart'; // Import the UserModel
@@ -43,13 +44,21 @@ class BinOwnerStockScreen extends StatelessWidget {
             ElevatedButton(
               onPressed: () {
                 // Navigate to the same screen (for demonstration)
-                Navigator.of(context).pushReplacement(
+                Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => BinOwnerSell(userName: userName, user: user,),
                   ),
                 );
               },
-              child: const Text('Go to Stock Screen'),
+              child: const Text(
+                'Sell',
+                style: TextStyle(
+                  color: Colors.green, // Changed text color to green
+                  fontWeight: FontWeight.bold, // Optional: Make the text bold
+                  fontSize: 50
+                ),
+              ),
+
             ),
           ],
         ),
@@ -74,7 +83,7 @@ class BinOwnerStockScreen extends StatelessWidget {
                   if (currentIndex != 0) {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
-                        builder: (context) => BinOwnerHomeScreen(userName: userName, user: user, currentIndex: 0),
+                        builder: (context) => BinOwnerHomeScreen(currentIndex: 0),
                       ),
                     );
                   }
@@ -88,7 +97,7 @@ class BinOwnerStockScreen extends StatelessWidget {
                   if (currentIndex != 1) {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
-                        builder: (context) => BinOwnerHomeScreen(userName: userName, user: user, currentIndex: 1),
+                        builder: (context) => BinOwnerHomeScreen(currentIndex: 1),
                       ),
                     );
                   }

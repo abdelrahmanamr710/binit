@@ -62,7 +62,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
               builder: (context) =>
-                  BinOwnerHomeScreen(userName: user.name ?? ""), // Pass the user name
+                  BinOwnerHomeScreen(), // Pass the user name
             ),
           );
         } else {

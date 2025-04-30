@@ -2,13 +2,68 @@ import 'package:flutter/material.dart';
 import 'package:binit/screens/binOwner_profile.dart';
 import 'package:binit/models/user_model.dart';
 import 'package:binit/screens/binOwner_stock.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class BinOwnerHomeScreen extends StatelessWidget {
-  final String userName;
-  final UserModel? user;
+class BinOwnerHomeScreen extends StatefulWidget {
   final int currentIndex;
-  const BinOwnerHomeScreen(
-      {super.key, required this.userName, this.user, this.currentIndex = 1});
+  const BinOwnerHomeScreen({super.key, this.currentIndex = 1});
+
+  @override
+  _BinOwnerHomeScreenState createState() => _BinOwnerHomeScreenState();
+}
+
+class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
+  String userName = "";
+  UserModel? user;
+  bool _isLoading = true; // Added to track loading state
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    try {
+      // 1. Get the current user's ID.
+      String? userId = FirebaseAuth.instance.currentUser?.uid;
+
+      if (userId != null) {
+        // 2. Fetch the user data from Firestore.
+        DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+            .collection('users') // Replace 'users' with your collection name
+            .doc(userId)
+            .get();
+
+        if (userSnapshot.exists) {
+          // 3. Convert the Firestore data to your UserModel.
+          Map<String, dynamic> userData =
+          userSnapshot.data() as Map<String, dynamic>;
+          user = UserModel.fromJson(userData);
+          userName = user!.name??"";
+        } else {
+          // Handle the case where the user data doesn't exist.
+          print('User data not found for ID: $userId');
+          // Set default values or show an error message.
+          userName = "User Not Found"; // set a default
+        }
+      } else {
+        // Handle the case where the user is not logged in.
+        print('User not logged in.');
+        userName = "Not Logged In"; // set a default
+      }
+    } catch (e) {
+      print("Error fetching user data: $e");
+      userName = "Error"; // set a default
+      //show error
+    } finally {
+      setState(() {
+        _isLoading =
+        false; // Update loading state after fetching (success or failure)
+      });
+    }
+  }
 
   Widget _buildBinWithSingleButton(
       String binLabel, String binImage, String binType) {
@@ -60,6 +115,7 @@ class BinOwnerHomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Use userName and user to display the data
     return Scaffold(
       backgroundColor: Colors.white, // Background color of the page
       appBar: AppBar(
@@ -75,14 +131,19 @@ class BinOwnerHomeScreen extends StatelessWidget {
         ),
         centerTitle: false, // Align title to the left if needed
       ),
-      body: Padding(
+      body: _isLoading // Show loading indicator
+          ? const Center(
+          child:
+          CircularProgressIndicator()) // Or a custom loading widget
+          : Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Welcome Text
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: const Color(0xFF1A524F), // Darker teal container color
                 borderRadius: BorderRadius.circular(16),
@@ -103,7 +164,9 @@ class BinOwnerHomeScreen extends StatelessWidget {
                 children: [
                   Column(
                     children: [
-                      const SizedBox(height: 70.0), // Space between welcome and images
+                      const SizedBox(
+                          height:
+                          70.0), // Space between welcome and images
                       // Bin 1 Row
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -118,18 +181,27 @@ class BinOwnerHomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 16.0),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            mainAxisAlignment:
+                            MainAxisAlignment.spaceAround,
                             children: [
-                              _buildBinWithSingleButton('Bin 1 Plastic',
-                                  'assets/png/bin1.png', 'Plastic'),
-                              const SizedBox(width: 5), // Minimal space between bins
-                              _buildBinWithSingleButton('Bin 1 Metal',
-                                  'assets/png/bin2.png', 'Metal'),
+                              _buildBinWithSingleButton(
+                                  'Bin 1 Plastic',
+                                  'assets/png/bin1.png',
+                                  'Plastic'),
+                              const SizedBox(
+                                  width:
+                                  5), // Minimal space between bins
+                              _buildBinWithSingleButton(
+                                  'Bin 1 Metal',
+                                  'assets/png/bin2.png',
+                                  'Metal'),
                             ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 60.0), // Space between rows
+                      const SizedBox(
+                          height:
+                          60.0), // Space between rows
                       // Bin 2 Row
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,13 +216,20 @@ class BinOwnerHomeScreen extends StatelessWidget {
                           ),
                           const SizedBox(width: 16.0),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            mainAxisAlignment:
+                            MainAxisAlignment.spaceAround,
                             children: [
-                              _buildBinWithSingleButton('Bin 2 Plastic',
-                                  'assets/png/bin1.png', 'Plastic'),
-                              const SizedBox(width: 5), // Minimal space between bins
-                              _buildBinWithSingleButton('Bin 2 Metal',
-                                  'assets/png/bin2.png', 'Metal'),
+                              _buildBinWithSingleButton(
+                                  'Bin 2 Plastic',
+                                  'assets/png/bin1.png',
+                                  'Plastic'),
+                              const SizedBox(
+                                  width:
+                                  5), // Minimal space between bins
+                              _buildBinWithSingleButton(
+                                  'Bin 2 Metal',
+                                  'assets/png/bin2.png',
+                                  'Metal'),
                             ],
                           ),
                         ],
@@ -178,9 +257,9 @@ class BinOwnerHomeScreen extends StatelessWidget {
               _buildNavBarItem(
                 icon: Icons.dashboard_rounded,
                 label: 'Stock',
-                isSelected: currentIndex == 0,
+                isSelected: widget.currentIndex == 0,
                 onTap: () {
-                  if (currentIndex != 0) {
+                  if (widget.currentIndex != 0) {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (context) => BinOwnerStockScreen(
@@ -195,14 +274,12 @@ class BinOwnerHomeScreen extends StatelessWidget {
               _buildNavBarItem(
                 icon: Icons.home_filled,
                 label: 'Home',
-                isSelected: currentIndex == 1,
+                isSelected: widget.currentIndex == 1,
                 onTap: () {
-                  if (currentIndex != 1) {
+                  if (widget.currentIndex != 1) {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (context) => BinOwnerHomeScreen(
-                            userName: userName,
-                            user: user,
                             currentIndex: 1),
                       ),
                     );
@@ -212,9 +289,9 @@ class BinOwnerHomeScreen extends StatelessWidget {
               _buildNavBarItem(
                 icon: Icons.person_rounded,
                 label: 'Profile',
-                isSelected: currentIndex == 2,
+                isSelected: widget.currentIndex == 2,
                 onTap: () {
-                  if (currentIndex != 2 && user != null) {
+                  if (widget.currentIndex != 2 && user != null) {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(
                         builder: (context) =>
