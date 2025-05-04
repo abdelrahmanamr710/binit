@@ -66,9 +66,7 @@ class _RecyclingCompanySignupScreenState
           // Navigate to the recycling company home screen
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (context) => RecyclingCompanyHomeScreen(
-                  userName: user.name ??
-                      ""), // Pass the user data, handle null with ""
+              builder: (context) => RecyclingCompanyHomeScreen(), // Pass the user data, handle null with ""
             ),
           );
         } else {

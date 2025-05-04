@@ -22,6 +22,9 @@ class AuthService {
       );
       final User? user = userCredential.user;
       if (user != null) {
+        await user.updateDisplayName(name); // Set Firebase display name
+        await user.reload(); // Reload user to apply changes
+
         final UserModel newUser = UserModel(
           uid: user.uid,
           email: email,
@@ -55,11 +58,9 @@ class AuthService {
         final DocumentSnapshot userDoc = await _firestore.collection('users').doc(user.uid).get();
         if (userDoc.exists) {
           Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-          // Ensure that userData is not null and is a map.
           if (userData != null && userData is Map<String, dynamic>) {
             return UserModel.fromJson(userData);
-          }
-          else{
+          } else {
             print("Error: userData is null or not a map");
             return null;
           }
@@ -115,23 +116,17 @@ class AuthService {
   // Change password
   Future<void> changePassword({required String email, required String oldPassword, required String newPassword}) async {
     try {
-      // 1. Re-authenticate the user
       final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: oldPassword,
       );
 
       final User? user = userCredential.user;
-
-
       if (user == null) {
         throw Exception('User not found.');
       }
-      // 2. Update the password
       await user.updatePassword(newPassword);
-
       print('Password changed successfully.');
-
     } on FirebaseAuthException catch (e) {
       print('Error changing password: ${e.message}');
       switch (e.code) {
@@ -151,18 +146,12 @@ class AuthService {
   // Update User Profile
   Future<void> updateUserProfile(UserModel user) async {
     try {
-      // 1. Get a reference to the user document in Firestore.
       final DocumentReference userRef = _firestore.collection('users').doc(user.uid);
-
-      // 2.  Update the fields.
-      await userRef.update(user.toJson()); //  use the toJson() method of your UserModel
+      await userRef.update(user.toJson());
       print('User profile updated successfully.');
-
-
     } catch (error) {
       print('Error updating user profile: $error');
       throw Exception('Failed to update user profile: $error');
     }
   }
 }
-

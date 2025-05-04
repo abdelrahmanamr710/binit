@@ -48,8 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
           } else if (user.userType == 'recyclingCompany') {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
-                builder: (context) => RecyclingCompanyHomeScreen(userName: user.name ??
-                    ""),
+                builder: (context) => RecyclingCompanyHomeScreen(),
               ),
             );
           } else {

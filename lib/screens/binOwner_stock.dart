@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:binit/screens/binOwner_profile.dart';
 import 'package:binit/models/user_model.dart'; // Import the UserModel
