@@ -123,6 +123,7 @@ class _BinOwnerOrdersState extends State<BinOwnerOrders> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A524F),
+        centerTitle: true,
         title: const Text('Sell Requests', style: TextStyle(color: Colors.white)),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),

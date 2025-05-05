@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:binit/screens/recyclingCompany_homescreen.dart'; // Import RecyclingCompanyHomeScreen
 
 class RecyclingCompanyProfileScreen extends StatelessWidget {
@@ -14,136 +15,230 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
         body: Center(child: Text('User not signed in')),
       );
     }
+
     final uid = user.uid;
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF03342F),
-        title: const Text('Profile'),
+        backgroundColor: const Color(0xFF1A524F), // Dark green background
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        title: const Text('Profile', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2, // Profile index
-        onTap: (index) {
-          switch (index) {
-            case 0:
-
-              
-              break;
-            case 1:
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const RecyclingCompanyHomeScreen(),
-                ),
-              );
-              break;
-            case 2:
-            // Already on Profile
-              break;
-          }
-        },
-        backgroundColor: const Color(0xFF03342F),
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white54,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.receipt), label: 'Previous Orders'),
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text('Failed to load profile'));
-          }
-
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-          final name = data['name'] ?? 'N/A';
-          final email = data['email'] ?? 'N/A';
-          final phone = data['phone'] ?? 'N/A';
-          final taxId = data['taxId'] ?? 'N/A';
-
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 48,
-                  backgroundColor: const Color(0xFFEFF5F4),
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : 'C',
-                    style: const TextStyle(fontSize: 36, color: Color(0xFF03342F)),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                _ProfileField(label: 'Name', value: name),
-                const SizedBox(height: 16),
-                _ProfileField(label: 'Email', value: email),
-                const SizedBox(height: 16),
-                _ProfileField(label: 'Phone', value: phone.toString()),
-                const SizedBox(height: 16),
-                // Tax ID is read-only
-                TextFormField(
-                  initialValue: taxId.toString(),
-                  decoration: const InputDecoration(
-                    labelText: 'Tax ID',
-                    border: OutlineInputBorder(),
-                  ),
-                  readOnly: true,
-                ),
-                const Spacer(),
-                Center(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF03342F),
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+      extendBodyBehindAppBar: true,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.only(top: 120.0, left: 20.0, right: 20.0, bottom: 15.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Center(
+              child: Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  Container(
+                    width: 120.0,
+                    height: 120.0,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.grey.shade300),
                     ),
-                    onPressed: () async {
-                      await FirebaseAuth.instance.signOut();
-                      Navigator.of(context).pushReplacementNamed('/login');
-                    },
-                    child: const Text('Sign Out'),
+                    child: const CircleAvatar(
+                      radius: 60.0,
+                      backgroundImage: AssetImage('assets/png/profile.png'), // Use the profile.png asset
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          );
-        },
+            const SizedBox(height: 30.0),
+            FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
+                  return const Center(child: Text('Failed to load profile'));
+                }
+
+                final data = snapshot.data!.data() as Map<String, dynamic>;
+                final name = data['name'] ?? '';
+                final email = data['email'] ?? '';
+                final phone = data['phone']?.toString() ?? '';
+                final taxId = data['taxId']?.toString() ?? '';
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Name',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 8.0),
+                    TextFormField(
+                      initialValue: name,
+                      enabled: false, // Not editable in this StatelessWidget
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    Text(
+                      'Email',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 8.0),
+                    TextFormField(
+                      initialValue: email,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    Text(
+                      'Phone',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 8.0),
+                    TextFormField(
+                      initialValue: phone,
+                      enabled: false, // Not editable in this StatelessWidget
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    Text(
+                      'Tax ID',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+                    ),
+                    const SizedBox(height: 8.0),
+                    TextFormField(
+                      initialValue: taxId,
+                      readOnly: true,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                      ),
+                    ),
+                    const SizedBox(height: 30.0),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          await FirebaseAuth.instance.signOut();
+                          Navigator.of(context).pushReplacementNamed('/login');
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A524F), // Dark green sign out button
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+                          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 40.0),
+                        ),
+                        child: const Text('Sign Out', style: TextStyle(fontSize: 16.0)),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF03342F),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: <Widget>[
+              _buildNavBarItem(
+                icon: Icons.receipt,
+                label: 'Previous Orders',
+                isSelected: false, // Adjust based on current screen
+                onTap: () {
+                  // TODO: Navigate to previous orders screen
+                },
+              ),
+              _buildNavBarItem(
+                icon: Icons.home,
+                label: 'Home',
+                isSelected: false, // Adjust based on current screen
+                onTap: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RecyclingCompanyHomeScreen(),
+                    ),
+                  );
+                },
+              ),
+              _buildNavBarItem(
+                icon: Icons.person,
+                label: 'Profile',
+                isSelected: true, // Adjust based on current screen
+                onTap: () {
+                  // Already on profile screen
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
-}
 
-class _ProfileField extends StatelessWidget {
-  final String label;
-  final String value;
-  const _ProfileField({required this.label, required this.value, super.key});
+  Widget _buildNavBarItem({
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final Color color = isSelected ? Colors.white : Colors.white54;
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '$label: ',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            color: Color(0xFF03342F),
-          ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(15),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(color: color, fontSize: 12),
+            ),
+          ],
         ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(fontSize: 16),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
