@@ -1,10 +1,48 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:binit/screens/recyclingCompany_profile.dart'; // Import RecyclingCompanyHomeScreen
+import 'package:binit/screens/recyclingCompany_orderDetails.dart';
+import 'package:binit/screens/recyclingCompany_profile.dart';
+import 'package:binit/screens/recyclingCompany_previousOrders.dart';
 
-class RecyclingCompanyHomeScreen extends StatelessWidget {
+class RecyclingCompanyHomeScreen extends StatefulWidget {
   const RecyclingCompanyHomeScreen({super.key});
+
+  @override
+  State<RecyclingCompanyHomeScreen> createState() =>
+      _RecyclingCompanyHomeScreenState();
+}
+
+class _RecyclingCompanyHomeScreenState
+    extends State<RecyclingCompanyHomeScreen> {
+  int _selectedIndex = 1; // Initially select the Home screen
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const RecyclingCompanyOrdersScreen(),
+          ),
+        );
+        break;
+      case 1:
+      // Current screen, no navigation needed
+        break;
+      case 2:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const RecyclingCompanyProfileScreen(),
+          ),
+        );
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +62,7 @@ class RecyclingCompanyHomeScreen extends StatelessWidget {
             body: Center(child: CircularProgressIndicator()),
           );
         }
-        if (userSnapshot.hasError ||
-            !userSnapshot.hasData ||
-            !userSnapshot.data!.exists) {
+        if (userSnapshot.hasError || !userSnapshot.hasData || !userSnapshot.data!.exists) {
           return const Scaffold(
             body: Center(child: Text('Failed to load user data')),
           );
@@ -37,57 +73,93 @@ class RecyclingCompanyHomeScreen extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: Colors.white,
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            title: const Text(''), // Empty title to allow custom layout
-            centerTitle: false,
+          bottomNavigationBar: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF03342F),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: _buildNavBarItem(
+                      icon: Icons.receipt,
+                      label: 'Previous Orders',
+                      isSelected: _selectedIndex == 0,
+                      onTap: () => _onItemTapped(0),
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildNavBarItem(
+                      icon: Icons.home,
+                      label: 'Home',
+                      isSelected: _selectedIndex == 1,
+                      onTap: () => _onItemTapped(1),
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildNavBarItem(
+                      icon: Icons.person,
+                      label: 'Profile',
+                      isSelected: _selectedIndex == 2,
+                      onTap: () => _onItemTapped(2),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
           body: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 16.0),
+              padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A524F),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 12.0),
-                          child: Text(
-                            'Welcome, $userName',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF03342F),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: RichText(
+                            text: TextSpan(
+                              text: 'Welcome, ',
+                              style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w400),
+                              children: [
+                                TextSpan(
+                                  text: userName,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 25, color: Colors.tealAccent),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          shape: BoxShape.circle,
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.notifications_none,
+                              color: Color(0xFF03342F),
+                              size: 40.0,
+                            ),
+                            onPressed: () {
+                              // TODO: Implement notification functionality
+                            },
+                          ),
                         ),
-                        child: IconButton(
-                          icon: const Icon(Icons.notifications_outlined,
-                              color: Colors.black),
-                          onPressed: () {
-                            // TODO: Implement notification functionality
-                            print('Notifications pressed');
-                          },
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 20),
                   Expanded(
                     child: StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
@@ -95,79 +167,63 @@ class RecyclingCompanyHomeScreen extends StatelessWidget {
                           .where('status', isEqualTo: 'pending')
                           .snapshots(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
-                          return const Center(
-                              child: CircularProgressIndicator());
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
                         }
 
                         final offers = snapshot.data?.docs ?? [];
                         if (offers.isEmpty) {
-                          return const Center(
-                              child: Text("No pending sell offers."));
+                          return const Center(child: Text("No pending sell offers."));
                         }
 
                         return ListView.builder(
                           itemCount: offers.length,
                           itemBuilder: (context, index) {
-                            final offer =
-                            offers[index].data() as Map<String, dynamic>;
+                            final doc = offers[index];
+                            final offer = doc.data() as Map<String, dynamic>;
+                            final offerId = doc.id;
                             return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
+                              margin: const EdgeInsets.only(bottom: 16),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFEFF5F4),
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(16),
                               ),
                               child: Padding(
-                                padding: const EdgeInsets.all(14.0),
-                                child: Row(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const CircleAvatar(
-                                      backgroundColor: Colors.grey,
-                                      radius: 25,
-                                      child: Icon(Icons.person,
-                                          color: Colors.white),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text("${offer['kilograms']} KG", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                        Text("EGP ${offer['price']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF03342F)))
+                                      ],
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            "${offer['kilograms']} KG of Metal for EGP ${offer['price']}",
-                                            style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            "${offer['city']}, ${offer['district']}",
-                                            style: const TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.black54),
-                                          ),
-                                        ],
+                                    const SizedBox(height: 8),
+                                    Text("${offer['city']}, ${offer['district']}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                                    const SizedBox(height: 8),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF03342F),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        ),
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => SellOfferDetailsScreen(offerId: offerId),
+                                            ),
+                                          );
+                                        },
+                                        child: const Text(
+                                          "View Details",
+                                          style: TextStyle(color: Colors.white), // Changed text color to white
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor:
-                                        const Color(0xFF03342F),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                            BorderRadius.circular(20)),
-                                      ),
-                                      onPressed: () {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(const SnackBar(
-                                            content: Text(
-                                                "View Details clicked!")));
-                                      },
-                                      child: const Text("View Details",
-                                          style: TextStyle(color: Colors.white)),
-                                    ),
+                                    )
                                   ],
                                 ),
                               ),
@@ -176,52 +232,7 @@ class RecyclingCompanyHomeScreen extends StatelessWidget {
                         );
                       },
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          bottomNavigationBar: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFF03342F),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: Padding(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: <Widget>[
-                  _buildNavBarItem(
-                    icon: Icons.receipt,
-                    label: 'Previous Orders',
-                    isSelected: false, // Adjust based on current screen
-                    onTap: () {
-                      // TODO: Navigate to previous orders screen
-                    },
-                  ),
-                  _buildNavBarItem(
-                    icon: Icons.home,
-                    label: 'Home',
-                    isSelected: true, // Adjust based on current screen
-                    onTap: () {
-                      // Already on home screen
-                    },
-                  ),
-                  _buildNavBarItem(
-                    icon: Icons.person,
-                    label: 'Profile',
-                    isSelected: false, // Adjust based on current screen
-                    onTap: () {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const RecyclingCompanyProfileScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                  )
                 ],
               ),
             ),

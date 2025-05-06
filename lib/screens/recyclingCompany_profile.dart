@@ -2,7 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:binit/screens/recyclingCompany_homescreen.dart'; // Import RecyclingCompanyHomeScreen
+import 'package:binit/screens/recyclingCompany_homescreen.dart';
+import 'package:binit/screens/recyclingCompany_previousOrders.dart';
 
 class RecyclingCompanyProfileScreen extends StatelessWidget {
   const RecyclingCompanyProfileScreen({super.key});
@@ -25,7 +26,10 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pop(context);
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const RecyclingCompanyHomeScreen()),
+            );
           },
         ),
         title: const Text('Profile', style: TextStyle(color: Colors.white)),
@@ -167,49 +171,67 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF03342F),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 10.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              _buildNavBarItem(
-                icon: Icons.receipt,
-                label: 'Previous Orders',
-                isSelected: false, // Adjust based on current screen
-                onTap: () {
-                  // TODO: Navigate to previous orders screen
-                },
+      bottomNavigationBar: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          return Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF03342F),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: constraints.maxWidth / 15, // Adjust for equal spacing
+                vertical: 10.0,
               ),
-              _buildNavBarItem(
-                icon: Icons.home,
-                label: 'Home',
-                isSelected: false, // Adjust based on current screen
-                onTap: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const RecyclingCompanyHomeScreen(),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: <Widget>[
+                  Expanded(
+                    child: _buildNavBarItem(
+                      icon: Icons.receipt,
+                      label: 'Previous Orders',
+                      isSelected: false,
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RecyclingCompanyOrdersScreen(),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
+                  ),
+                  Expanded(
+                    child: _buildNavBarItem(
+                      icon: Icons.home,
+                      label: 'Home',
+                      isSelected: false,
+                      onTap: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const RecyclingCompanyHomeScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildNavBarItem(
+                      icon: Icons.person,
+                      label: 'Profile',
+                      isSelected: true,
+                      onTap: () {
+                        // Already on profile screen
+                      },
+                    ),
+                  ),
+                ],
               ),
-              _buildNavBarItem(
-                icon: Icons.person,
-                label: 'Profile',
-                isSelected: true, // Adjust based on current screen
-                onTap: () {
-                  // Already on profile screen
-                },
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -226,7 +248,7 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(15),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -234,6 +256,7 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
+              textAlign: TextAlign.center,
               style: TextStyle(color: color, fontSize: 12),
             ),
           ],
