@@ -31,6 +31,7 @@ class BinItApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
       home: const SplashScreen(), // Use SplashScreen as the initial screen.  This is the change.
+      debugShowCheckedModeBanner: false,
       routes: <String, WidgetBuilder>{ // Define routes for navigation
         '/login': (context) => const LoginScreen(),
         '/signup_as': (context) => const SignUpAs(),
