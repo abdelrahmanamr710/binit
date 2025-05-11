@@ -13,20 +13,10 @@ class BinOwnerStockScreen extends StatelessWidget {
 
   Widget _buildStockItem(
       {required String type,
-        required int fullnessPercentage,
         required String weight,
         required int emptiedTimes,
         required String lastEmptiedDate,
         required BuildContext context}) {
-    Color progressColor;
-    if (fullnessPercentage <= 50) {
-      progressColor = Colors.green;
-    } else if (fullnessPercentage <= 80) {
-      progressColor = Colors.yellow;
-    } else {
-      progressColor = Colors.red;
-    }
-
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
       padding: const EdgeInsets.all(16.0),
@@ -40,59 +30,53 @@ class BinOwnerStockScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                type,
-                style: const TextStyle(
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                '$weight',
-                style: const TextStyle(fontSize: 14.0, color: Colors.grey),
+              // Adding the icon based on the type
+              Row(
+                children: [
+                  Icon(
+                    type == 'Plastic' ? Icons.local_drink : Icons.build, // Plastic icon for "Plastic", Metal icon for "Metals"
+                    color: Colors.green, // You can change the color as per your preference
+                  ),
+                  const SizedBox(width: 8.0),
+                  Text(
+                    type,
+                    style: const TextStyle(
+                      fontSize: 25.0, // Adjust font size
+                      fontWeight: FontWeight.w600, // Font weight
+                      fontFamily: 'Roboto', // Font family
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
           const SizedBox(height: 8.0),
-          Stack(
-            children: [
-              Container(
-                height: 20.0,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              Container(
-                height: 20.0,
-                width: (MediaQuery.of(context).size.width - 32) *
-                    (fullnessPercentage / 100),
-                decoration: BoxDecoration(
-                  color: progressColor,
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: Text(
-                      '$fullnessPercentage%',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          // Weight text added above "Emptied"
+          Text(
+            'kg: $weight',
+            style: const TextStyle(
+              fontSize: 23.0, // Adjust font size
+              color: Colors.black,
+              fontFamily: 'Roboto', // Font family
+            ),
           ),
-          const SizedBox(height: 16.0),
+          const SizedBox(height: 8.0),
+          // Emptied text
           Text(
             'Emptied : $emptiedTimes times',
-            style: const TextStyle(fontSize: 16.0, color: Colors.black87),
+            style: const TextStyle(
+              fontSize: 23.0, // Adjust font size
+              color: Colors.black87,
+              fontFamily: 'Roboto', // Font family
+            ),
           ),
           Text(
             'Last Emptied: $lastEmptiedDate',
-            style: const TextStyle(fontSize: 14.0, color: Colors.grey),
+            style: const TextStyle(
+              fontSize: 14.0,
+              color: Colors.grey,
+              fontFamily: 'Roboto', // Font family
+            ),
           ),
           const SizedBox(height: 16.0),
           Align(
@@ -153,16 +137,14 @@ class BinOwnerStockScreen extends StatelessWidget {
           children: <Widget>[
             _buildStockItem(
               type: 'Plastic',
-              fullnessPercentage: 70,
-              weight: '50kg',
+              weight: '50',
               emptiedTimes: 4,
               lastEmptiedDate: '12-12-2024',
               context: context,
             ),
             _buildStockItem(
               type: 'Metals',
-              fullnessPercentage: 45,
-              weight: '20kg',
+              weight: '20',
               emptiedTimes: 2,
               lastEmptiedDate: '12-12-2024',
               context: context,

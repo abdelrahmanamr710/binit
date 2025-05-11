@@ -21,7 +21,7 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A524F), // Dark green background
+        backgroundColor: const Color(0xFF1A524F),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -58,7 +58,7 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
                     ),
                     child: const CircleAvatar(
                       radius: 60.0,
-                      backgroundImage: AssetImage('assets/png/profile.png'), // Use the profile.png asset
+                      backgroundImage: AssetImage('assets/png/profile.png'),
                     ),
                   ),
                 ],
@@ -92,7 +92,7 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
                     const SizedBox(height: 8.0),
                     TextFormField(
                       initialValue: name,
-                      enabled: false, // Not editable in this StatelessWidget
+                      readOnly: true,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
@@ -124,7 +124,7 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
                     const SizedBox(height: 8.0),
                     TextFormField(
                       initialValue: phone,
-                      enabled: false, // Not editable in this StatelessWidget
+                      readOnly: true,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
@@ -156,7 +156,7 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
                           Navigator.of(context).pushReplacementNamed('/login');
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1A524F), // Dark green sign out button
+                          backgroundColor: const Color(0xFF1A524F),
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
                           padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 40.0),
@@ -181,7 +181,7 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
             margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: constraints.maxWidth / 15, // Adjust for equal spacing
+                horizontal: constraints.maxWidth / 15,
                 vertical: 10.0,
               ),
               child: Row(
@@ -222,9 +222,7 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
                       icon: Icons.person,
                       label: 'Profile',
                       isSelected: true,
-                      onTap: () {
-                        // Already on profile screen
-                      },
+                      onTap: () {},
                     ),
                   ),
                 ],
