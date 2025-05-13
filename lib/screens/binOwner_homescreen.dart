@@ -3,8 +3,9 @@ import 'package:binit/screens/binOwner_profile.dart';
 import 'package:binit/models/user_model.dart';
 import 'package:binit/screens/binOwner_stock.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:binit/screens/binOwner_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:binit/services/notification_service.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class BinOwnerHomeScreen extends StatefulWidget {
   final int currentIndex;
@@ -15,43 +16,61 @@ class BinOwnerHomeScreen extends StatefulWidget {
 }
 
 class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
-  String userName = "";
+  // Realtime Database references
+  final DatabaseReference _plasticRef = FirebaseDatabase.instance.ref('/BIN/plastic/level');
+  final DatabaseReference _metalRef = FirebaseDatabase.instance.ref('/BIN/metal/level');
+  final DatabaseReference _plastic2Ref = FirebaseDatabase.instance.ref('/BIN/plastic2/level');
+  final DatabaseReference _metal2Ref = FirebaseDatabase.instance.ref('/BIN/metal2/level');
+  
+  // Track seen offers
+  final Set<String> _seenOffers = {};
+  
+  // Track last bin levels to avoid duplicate notifications
+  String _lastPlasticLevel = '';
+  String _lastMetalLevel = '';
+  String _lastPlastic2Level = '';
+  String _lastMetal2Level = '';
+  
+  // Helper function to handle bin level updates
+  void _handleBinLevelUpdate(String newLevel, String lastLevel, String binName, String material) {
+    if (newLevel != lastLevel && lastLevel.isNotEmpty) {
+      NotificationService().showBinLevelUpdate(
+        binName: binName,
+        material: material,
+        level: newLevel,
+      );
+    }
+  }
+
+  String userName = '';
   UserModel? user;
   bool _isLoading = true;
-  String _sortBy = 'Fullness: Ascendingly'; // Default sorting option
+  String _sortBy = 'Fullness: Ascendingly';
 
   @override
   void initState() {
     super.initState();
+    _startAcceptedOfferListener();
     _fetchUserData();
   }
 
   Future<void> _fetchUserData() async {
     try {
-      String? userId = FirebaseAuth.instance.currentUser?.uid;
-
-      if (userId != null) {
-        DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .get();
-
-        if (userSnapshot.exists) {
-          Map<String, dynamic> userData =
-          userSnapshot.data() as Map<String, dynamic>;
-          user = UserModel.fromJson(userData);
-          userName = user!.name ?? "";
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        if (doc.exists) {
+          final data = doc.data() as Map<String, dynamic>;
+          user = UserModel.fromJson(data);
+          userName = data['name'] ?? '';
         } else {
-          print('User data not found for ID: $userId');
-          userName = "User Not Found";
+          userName = 'User Not Found';
         }
       } else {
-        print('User not logged in.');
-        userName = "Not Logged In";
+        userName = 'Not Logged In';
       }
-    } catch (e) {
-      print("Error fetching user data: $e");
-      userName = "Error";
+    } catch (_) {
+      userName = 'Error';
     } finally {
       setState(() {
         _isLoading = false;
@@ -59,46 +78,64 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
     }
   }
 
+  void _startAcceptedOfferListener() {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    FirebaseFirestore.instance
+        .collection('sell_offers')
+        .where('userId', isEqualTo: uid)
+        .where('status', isEqualTo: 'accepted')
+        .snapshots()
+        .listen((snapshot) {
+      for (final doc in snapshot.docs) {
+        if (!_seenOffers.add(doc.id)) continue;
+        final data = doc.data() as Map<String, dynamic>;
+        NotificationService().showOfferAccepted(
+          company: data['companyName'] as String? ?? 'Company',
+          kilos: data['kilograms'] as num? ?? 0,
+        );
+      }
+    });
+  }
+
   Widget _buildBinWithSingleButton(
-      String binLabel, String binImage, String binType) {
+      String title,
+      String asset,
+      String subtitle,
+      ) {
     return Column(
       children: [
         Text(
-          '$binType:',
+          title,
           style: const TextStyle(
-            fontSize: 24.0,
-            fontWeight: FontWeight.w500,
-            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
           ),
         ),
+        const SizedBox(height: 8),
         Container(
-          width: 150.0,
-          height: 170.0,
+          width: double.infinity,
+          height: 120,
           decoration: BoxDecoration(
             image: DecorationImage(
-              image: AssetImage(binImage),
+              image: AssetImage(asset),
               fit: BoxFit.contain,
             ),
           ),
         ),
-        const SizedBox(height: 8.0),
-        SizedBox(
-          width: 100.0,
-          child: ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFE0F2F7),
-              foregroundColor: const Color(0xFF26A69A),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20.0),
-              ),
-              padding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              textStyle:
-              const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        const SizedBox(height: 8),
+        Text(subtitle, style: const TextStyle(fontSize: 16)),
+        const SizedBox(height: 8),
+        ElevatedButton(
+          onPressed: () {},
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFE0F2F7),
+            foregroundColor: const Color(0xFF26A69A),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text('Empty'),
           ),
+          child: const Text('Empty'),
         ),
       ],
     );
@@ -111,14 +148,18 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(''), // Empty title to allow custom layout
-        centerTitle: false,
+        title: const SizedBox.shrink(),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: Colors.black),
+            onPressed: () => Navigator.pushNamed(context, '/notifications'),
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
-        padding:
-        const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -126,47 +167,37 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A524F),
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 12.0),
-                    child: Text(
-                      'Welcome, $userName',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  child: Text(
+                    'Welcome, $userName',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.notifications_outlined,
-                        color: Colors.black),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => BinOwnerNotificationsScreen()),                      );
-                    },
+                IconButton(
+                  icon: const Icon(Icons.person, color: Colors.black),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BinOwnerProfile(user: user!),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
                 color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -175,97 +206,128 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
                   const SizedBox(width: 8),
                   DropdownButton<String>(
                     value: _sortBy,
-                    icon: const Icon(Icons.arrow_drop_down,
-                        color: Colors.grey),
-                    iconSize: 20,
-                    elevation: 16,
-                    style: const TextStyle(color: Colors.black87),
-                    underline: Container(height: 0),
-                    onChanged: (String? newValue) {
-                      setState(() {
-                        _sortBy = newValue!;
-                        // TODO: Implement sorting logic based on _sortBy
-                        print('Sorting by: $_sortBy');
-                      });
-                    },
-                    items: <String>[
+                    underline: const SizedBox.shrink(),
+                    items: [
                       'Fullness: Ascendingly',
                       'Fullness: Descendingly',
-                    ].map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value, style: const TextStyle(fontSize: 14)),
-                      );
-                    }).toList(),
+                    ]
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (val) => setState(() => _sortBy = val!),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Expanded(
               child: ListView(
                 children: [
-                  Column(
+                  // Bin 1 Row
+                  Row(
                     children: [
-                      const SizedBox(height: 25.0),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Bin 1:',
-                            style: TextStyle(
-                              fontSize: 18.0,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(width: 16.0),
-                          Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildBinWithSingleButton(
-                                  'Bin 1 Plastic',
-                                  'assets/png/bin1.png',
-                                  'Plastic'),
-                              const SizedBox(width: 5),
-                              _buildBinWithSingleButton(
-                                  'Bin 1 Metal',
-                                  'assets/png/bin2.png',
-                                  'Metal'),
-                            ],
-                          ),
-                        ],
+                      Expanded(
+                        child: StreamBuilder<DatabaseEvent>(
+                          stream: _plasticRef.onValue,
+                          builder: (context, snapshot) {
+                            String level = '...';
+                            if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
+                              final val = snapshot.data!.snapshot.value;
+                              final rawStr = val.toString().replaceAll('%', '');
+                              final num lvl = num.tryParse(rawStr) ?? 0;
+                              level = '$lvl%';
+                              
+                              // Only send notification if level has changed
+                              if (level != _lastPlasticLevel && _lastPlasticLevel.isNotEmpty) {
+                                NotificationService().showBinLevelUpdate(
+                                  binName: 'Bin 1',
+                                  material: 'Plastic',
+                                  level: level,
+                                );
+                              }
+                              // Update last known level
+                              _lastPlasticLevel = level;
+                            }
+                            return _buildBinWithSingleButton(
+                              'Bin 1 Plastic',
+                              'assets/png/bin1.png',
+                              'Plastic -  $level',
+                            );
+                          },
+                        ),
                       ),
-                      const SizedBox(height: 20.0),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Bin 2:',
-                            style: TextStyle(
-                              fontSize: 18.0,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(width: 16.0),
-                          Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildBinWithSingleButton(
-                                  'Bin 2 Plastic',
-                                  'assets/png/bin1.png',
-                                  'Plastic'),
-                              const SizedBox(width: 5),
-                              _buildBinWithSingleButton(
-                                  'Bin 2 Metal',
-                                  'assets/png/bin2.png',
-                                  'Metal'),
-                            ],
-                          ),
-                        ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: StreamBuilder<DatabaseEvent>(
+                          stream: _metalRef.onValue,
+                          builder: (context, snapshot) {
+                            String level = '...';
+                            if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
+                              final val = snapshot.data!.snapshot.value;
+                              final rawStr = val.toString().replaceAll('%', '');
+                              final num lvl = num.tryParse(rawStr) ?? 0;
+                              level = '$lvl%';
+                              
+                              _handleBinLevelUpdate(level, _lastMetalLevel, 'Bin 1', 'Metal');
+                              _lastMetalLevel = level;
+                            }
+                            return _buildBinWithSingleButton(
+                              'Bin 1 Metal',
+                              'assets/png/bin2.png',
+                              'Metal - $level',
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Bin 2 Row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: StreamBuilder<DatabaseEvent>(
+                          stream: _plastic2Ref.onValue,
+                          builder: (context, snapshot) {
+                            String level = '...';
+                            if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
+                              final val = snapshot.data!.snapshot.value;
+                              final rawStr = val.toString().replaceAll('%', '');
+                              final num lvl = num.tryParse(rawStr) ?? 0;
+                              level = '$lvl%';
+                              
+                              _handleBinLevelUpdate(level, _lastPlastic2Level, 'Bin 2', 'Plastic');
+                              _lastPlastic2Level = level;
+                            }
+                            return _buildBinWithSingleButton(
+                              'Bin 2 Plastic',
+                              'assets/png/bin1.png',
+                              'Plastic - $level',
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: StreamBuilder<DatabaseEvent>(
+                          stream: _metal2Ref.onValue,
+                          builder: (context, snapshot) {
+                            String level = '...';
+                            if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
+                              final val = snapshot.data!.snapshot.value;
+                              final rawStr = val.toString().replaceAll('%', '');
+                              final num lvl = num.tryParse(rawStr) ?? 0;
+                              level = '$lvl%';
+                              
+                              _handleBinLevelUpdate(level, _lastMetal2Level, 'Bin 2', 'Metal');
+                              _lastMetal2Level = level;
+                            }
+                            return _buildBinWithSingleButton(
+                              'Bin 2 Metal',
+                              'assets/png/bin2.png',
+                              'Metal - $level',
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -276,65 +338,65 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
         ),
       ),
       bottomNavigationBar: Container(
+        margin: const EdgeInsets.all(10),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: const Color(0xFF1A524F),
           borderRadius: BorderRadius.circular(20),
         ),
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        child: Padding(
-          padding:
-          const EdgeInsets.symmetric(horizontal: 25.0, vertical: 5.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              _buildNavBarItem(
-                icon: Icons.dashboard_rounded,
-                label: 'Stock',
-                isSelected: widget.currentIndex == 0,
-                onTap: () {
-                  if (widget.currentIndex != 0) {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => BinOwnerStockScreen(
-                            userName: userName,
-                            user: user,
-                            currentIndex: 0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavBarItem(
+              icon: Icons.dashboard,
+              label: 'Stock',
+              isSelected: widget.currentIndex == 0,
+              onTap: () {
+                if (widget.currentIndex != 0) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BinOwnerStockScreen(
+                        userName: userName,
+                        user: user,
+                        currentIndex: 0,
                       ),
-                    );
-                  }
-                },
-              ),
-              _buildNavBarItem(
-                icon: Icons.home_filled,
-                label: 'Home',
-                isSelected: widget.currentIndex == 1,
-                onTap: () {
-                  if (widget.currentIndex != 1) {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            BinOwnerHomeScreen(currentIndex: 1),
-                      ),
-                    );
-                  }
-                },
-              ),
-              _buildNavBarItem(
-                icon: Icons.person_rounded,
-                label: 'Profile',
-                isSelected: widget.currentIndex == 2,
-                onTap: () {
-                  if (widget.currentIndex != 2 && user != null) {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => BinOwnerProfile(user: user!),
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
+                    ),
+                  );
+                }
+              },
+            ),
+            _buildNavBarItem(
+              icon: Icons.home,
+              label: 'Home',
+              isSelected: widget.currentIndex == 1,
+              onTap: () {
+                if (widget.currentIndex != 1) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BinOwnerHomeScreen(currentIndex: 1),
+                    ),
+                  );
+                }
+              },
+            ),
+            _buildNavBarItem(
+              icon: Icons.person,
+              label: 'Profile',
+              isSelected: widget.currentIndex == 2,
+              onTap: () {
+                if (widget.currentIndex != 2 && user != null) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BinOwnerProfile(user: user!),
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -346,24 +408,16 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    final Color color = isSelected ? Colors.white : Colors.grey[300]!;
-
-    return InkWell(
+    final color = isSelected ? Colors.white : Colors.white70;
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(height: 1),
-            Text(
-              label,
-              style: TextStyle(color: color, fontSize: 12),
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: color)),
+        ],
       ),
     );
   }

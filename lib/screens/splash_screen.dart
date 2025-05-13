@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async'; // Import the async library
+import 'package:binit/services/auth_service.dart';
+import 'package:binit/models/user_model.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,10 +14,46 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Delay navigation by 6 seconds
-    Timer(const Duration(seconds: 3), () {
-      Navigator.of(context).pushReplacementNamed('/login');
+    // Add a small delay to ensure Firebase is initialized
+    Future.delayed(const Duration(seconds: 2), () {
+      _checkCurrentUser();
     });
+  }
+  
+  Future<void> _checkCurrentUser() async {
+    try {
+      print('SplashScreen: Starting user authentication check');
+      final AuthService authService = AuthService();
+      final UserModel? currentUser = await authService.getCurrentUser();
+      
+      if (!mounted) return; // Check if widget is still mounted
+      
+      if (currentUser != null) {
+        print('SplashScreen: User found with type: ${currentUser.userType}');
+        // User is already signed in, navigate to appropriate home screen
+        if (currentUser.userType == 'binOwner') {
+          print('SplashScreen: Navigating to bin owner home');
+          Navigator.of(context).pushReplacementNamed('/bin_owner_home');
+        } else if (currentUser.userType == 'recyclingCompany') {
+          print('SplashScreen: Navigating to recycling company home');
+          Navigator.of(context).pushReplacementNamed('/recycling_company_home');
+        } else {
+          print('SplashScreen: Unknown user type, redirecting to login');
+          Navigator.of(context).pushReplacementNamed('/login');
+        }
+      } else {
+        print('SplashScreen: No user found, redirecting to login');
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+    } catch (error) {
+      print('SplashScreen Error: $error');
+      print('Stack trace: ${StackTrace.current}');
+      
+      if (!mounted) return;
+      
+      // Navigate to login on error
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
   }
 
   @override
@@ -30,31 +68,28 @@ class _SplashScreenState extends State<SplashScreen> {
               left: 0,
               child: Image.asset(
                 'assets/png/leftcornergreen.png',
-                width: 550, // Adjust width and height if needed
+                width: 550,
                 height: 450,
-                fit: BoxFit.contain, // Make sure it doesn't crop
+                fit: BoxFit.contain,
                 alignment: Alignment.topLeft,
               ),
             ),
-
-            // Bottom Right Image
             Positioned(
               bottom: 0,
               right: 0,
               child: Image.asset(
                 'assets/png/bottomright.png',
-                width: 550, // adjust size as needed
+                width: 550,
                 height: 450,
                 fit: BoxFit.contain,
                 alignment: Alignment.bottomRight,
               ),
             ),
-
             Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Text(
+                children: [
+                  const Text(
                     'Hi,',
                     style: TextStyle(
                       color: Color(0xFF000000),
@@ -63,7 +98,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(
+                  const Text(
                     'Recyclers',
                     style: TextStyle(
                       color: Color(0xFF000000),
@@ -71,6 +106,10 @@ class _SplashScreenState extends State<SplashScreen> {
                       fontSize: 50,
                       fontWeight: FontWeight.bold,
                     ),
+                  ),
+                  const SizedBox(height: 30),
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
                   ),
                 ],
               ),

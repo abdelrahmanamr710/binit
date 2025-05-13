@@ -1,10 +1,70 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user_model.dart'; // Import UserModel
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  
+  // Check if user is already signed in and return user data
+  Future<UserModel?> getCurrentUser() async {
+    try {
+      print('Checking current user status...');
+      // First check Firebase Auth's current user
+      User? currentUser = _auth.currentUser;
+      print('Firebase current user: ${currentUser?.email}');
+      
+      String? storedEmail = await _storage.read(key: 'email');
+      String? storedUid = await _storage.read(key: 'uid');
+      print('Stored credentials - Email: $storedEmail, UID: $storedUid');
+      
+      // If Firebase has current user, verify and return user data
+      if (currentUser != null) {
+        print('Fetching user document for uid: ${currentUser.uid}');
+        final DocumentSnapshot userDoc = await _firestore.collection('users').doc(currentUser.uid).get();
+        
+        if (userDoc.exists) {
+          print('User document exists in Firestore');
+          // Update stored credentials if they don't match
+          if (storedEmail != currentUser.email || storedUid != currentUser.uid) {
+            print('Updating stored credentials');
+            await _storage.write(key: 'email', value: currentUser.email);
+            await _storage.write(key: 'uid', value: currentUser.uid);
+          }
+          Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+          return UserModel.fromJson(userData);
+        } else {
+          print('No Firestore document found for current user');
+        }
+      } else {
+        print('No current Firebase user found');
+      }
+      
+      // If no current user but have stored credentials, try to sign in
+      if (storedEmail != null && storedUid != null) {
+        print('Attempting to use stored credentials');
+        final DocumentSnapshot userDoc = await _firestore.collection('users').doc(storedUid).get();
+        if (userDoc.exists) {
+          print('Found user document using stored credentials');
+          Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+          return UserModel.fromJson(userData);
+        } else {
+          print('No user document found for stored credentials');
+          // Clear invalid stored credentials
+          await _storage.deleteAll();
+          print('Cleared invalid stored credentials');
+        }
+      }
+      print('No valid user found, returning null');
+      return null;
+    } catch (error) {
+      print('Error getting current user: $error');
+      print('Stack trace: ${StackTrace.current}');
+      return null;
+    }
+  }
 
   // Sign up with email and password
   Future<UserModel?> signUpWithEmailAndPassword({
@@ -59,6 +119,9 @@ class AuthService {
         if (userDoc.exists) {
           Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
           if (userData != null && userData is Map<String, dynamic>) {
+            // Store user credentials securely
+            await _storage.write(key: 'email', value: email);
+            await _storage.write(key: 'uid', value: user.uid);
             return UserModel.fromJson(userData);
           } else {
             print("Error: userData is null or not a map");
@@ -96,21 +159,29 @@ class AuthService {
     if (error is FirebaseAuthException) {
       switch (error.code) {
         case 'user-not-found':
-          return Exception('User not found.');
+          return Exception('No user found with this email.');
         case 'wrong-password':
-          return Exception('Invalid password.');
+          return Exception('Wrong password.');
         case 'invalid-email':
           return Exception('Invalid email address.');
+        case 'user-disabled':
+          return Exception('This account has been disabled.');
         default:
-          return Exception('Failed to sign in: ${error.message}');
+          return Exception('An error occurred while signing in.');
       }
     }
-    return Exception('Failed to sign in: $error');
+    return Exception('An unexpected error occurred.');
   }
 
-  // Sign out
+  // Sign out and clear stored credentials
   Future<void> signOut() async {
-    await _auth.signOut();
+    try {
+      await _auth.signOut();
+      await _storage.deleteAll(); // Clear all stored credentials
+    } catch (error) {
+      print('Error signing out: $error');
+      throw Exception('Failed to sign out.');
+    }
   }
 
   // Change password
