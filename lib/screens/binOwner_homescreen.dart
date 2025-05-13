@@ -3,6 +3,7 @@ import 'package:binit/screens/binOwner_profile.dart';
 import 'package:binit/models/user_model.dart';
 import 'package:binit/screens/binOwner_stock.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:binit/screens/binOwner_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class BinOwnerHomeScreen extends StatefulWidget {
@@ -152,8 +153,9 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
                     icon: const Icon(Icons.notifications_outlined,
                         color: Colors.black),
                     onPressed: () {
-                      // TODO: Implement notification functionality
-                      print('Notifications pressed');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => BinOwnerNotificationsScreen()),                      );
                     },
                   ),
                 ),
