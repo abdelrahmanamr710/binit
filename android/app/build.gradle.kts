@@ -7,23 +7,25 @@ plugins {
 
 android {
     namespace = "com.sams.binit.binit"
-    compileSdk = 35 // Explicitly set to the latest stable SDK
-
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17 // Use Java 17
-        targetCompatibility = JavaVersion.VERSION_17 // Use Java 17
-    }
-
-    kotlinOptions {
-        jvmTarget = "17" // Use Java 17
-    }
+    compileSdk = 35 // Latest stable SDK
 
     defaultConfig {
         applicationId = "com.sams.binit.binit"
-        minSdk = 23 // Explicitly set to 23 (or higher)
-        targetSdk = 34 // Explicitly set to the latest stable SDK
+        minSdk = 23 // Minimum supported API level
+        targetSdk = 35 // Latest stable SDK
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    // Enable Java 8+ desugaring required by flutter_local_notifications
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+        isCoreLibraryDesugaringEnabled = true
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8" // Match Java compatibility
     }
 
     buildTypes {
@@ -33,12 +35,15 @@ android {
     }
 
     dependencies {
-        // Import the Firebase BoM
+        // Firebase BoM for consistent versions
         implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
-
-        // Add the dependencies for Firebase products you want to use
-        // When using the BoM, don't specify versions in Firebase dependencies
+        // Firebase Auth
         implementation("com.google.firebase:firebase-auth")
+        // Core library desugaring for Java 8+ APIs
+        coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+        // Local notifications plugin
+        implementation(project(":flutter_local_notifications"))
+        // Add other plugin dependencies below
     }
 }
 

@@ -1,18 +1,8 @@
-  import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+
 
   class AppTheme {
     static final ThemeData lightTheme = ThemeData(
-            // ── Add this block ──
-      pageTransitionsTheme: const PageTransitionsTheme(
-          builders: {
-            TargetPlatform.android: _CustomPageTransitionBuilder(),
-            TargetPlatform.fuchsia: _CustomPageTransitionBuilder(),
-            TargetPlatform.linux: _CustomPageTransitionBuilder(),
-            TargetPlatform.macOS: _CustomPageTransitionBuilder(),
-           TargetPlatform.windows: _CustomPageTransitionBuilder(),
-            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-        },
-            ),
       primaryColor: Colors.green, // Consistent primary color
       colorScheme: const ColorScheme.light(
         secondary: Colors.amber,
@@ -50,17 +40,6 @@
     );
 
     static final ThemeData darkTheme = ThemeData(
-            // ── And also here ──
-           pageTransitionsTheme: const PageTransitionsTheme(
-        builders: {
-          TargetPlatform.android: _CustomPageTransitionBuilder(),
-           TargetPlatform.fuchsia: _CustomPageTransitionBuilder(),
-           TargetPlatform.linux: _CustomPageTransitionBuilder(),
-            TargetPlatform.macOS: _CustomPageTransitionBuilder(),
-           TargetPlatform.windows: _CustomPageTransitionBuilder(),
-           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-        },
-          ),
       primaryColor: Colors.green[800], // Consistent primary color for dark
       colorScheme: const ColorScheme.dark(
         secondary: Colors.amber,
@@ -96,25 +75,4 @@
         ),
       ),
     );
-  }
-  class _CustomPageTransitionBuilder extends PageTransitionsBuilder {
-    const _CustomPageTransitionBuilder();
-
-    @override
-    Widget buildTransitions<T>(
-        PageRoute<T> route,
-        BuildContext context,
-        Animation<double> animation,
-        Animation<double> secondaryAnimation,
-        Widget child,
-        ) {
-      // Animates opacity from 0→1 over the route's transitionDuration
-      return FadeTransition(
-        opacity: CurvedAnimation(
-          parent: animation,
-          curve: Curves.easeInOut,
-        ),
-        child: child,
-      );
-    }
   }
