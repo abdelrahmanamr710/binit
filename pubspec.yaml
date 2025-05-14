@@ -16,11 +16,12 @@ dependencies:
   firebase_auth: ^4.17.4
   cloud_firestore: ^4.15.4
   flutter_local_notifications: ^17.2.0
-  firebase_database: ^10.4.5
+  firebase_database: ^10.5.7
   flutter_secure_storage: ^9.0.0
   firebase_messaging: ^14.7.8
 
   cupertino_icons: ^1.0.8
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
