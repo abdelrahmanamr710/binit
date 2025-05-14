@@ -39,6 +39,10 @@ android {
         implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
         // Firebase Auth
         implementation("com.google.firebase:firebase-auth")
+        // Firebase Cloud Messaging
+        implementation("com.google.firebase:firebase-messaging")
+        // Firebase Realtime Database
+        implementation("com.google.firebase:firebase-database-ktx")
         // Core library desugaring for Java 8+ APIs
         coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
         // Local notifications plugin

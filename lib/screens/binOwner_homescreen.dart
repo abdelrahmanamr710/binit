@@ -17,22 +17,27 @@ class BinOwnerHomeScreen extends StatefulWidget {
 
 class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
   // Realtime Database references
-  final DatabaseReference _plasticRef = FirebaseDatabase.instance.ref('/BIN/plastic/level');
-  final DatabaseReference _metalRef = FirebaseDatabase.instance.ref('/BIN/metal/level');
-  final DatabaseReference _plastic2Ref = FirebaseDatabase.instance.ref('/BIN/plastic2/level');
-  final DatabaseReference _metal2Ref = FirebaseDatabase.instance.ref('/BIN/metal2/level');
-  
+  final DatabaseReference _plasticRef =
+  FirebaseDatabase.instance.ref('/BIN/plastic/level');
+  final DatabaseReference _metalRef =
+  FirebaseDatabase.instance.ref('/BIN/metal/level');
+  final DatabaseReference _plastic2Ref =
+  FirebaseDatabase.instance.ref('/BIN/plastic2/level');
+  final DatabaseReference _metal2Ref =
+  FirebaseDatabase.instance.ref('/BIN/metal2/level');
+
   // Track seen offers
   final Set<String> _seenOffers = {};
-  
+
   // Track last bin levels to avoid duplicate notifications
   String _lastPlasticLevel = '';
   String _lastMetalLevel = '';
   String _lastPlastic2Level = '';
   String _lastMetal2Level = '';
-  
+
   // Helper function to handle bin level updates
-  void _handleBinLevelUpdate(String newLevel, String lastLevel, String binName, String material) {
+  void _handleBinLevelUpdate(
+      String newLevel, String lastLevel, String binName, String material) {
     if (newLevel != lastLevel && lastLevel.isNotEmpty) {
       NotificationService().showBinLevelUpdate(
         binName: binName,
@@ -58,7 +63,8 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        final doc =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
         if (doc.exists) {
           final data = doc.data() as Map<String, dynamic>;
           user = UserModel.fromJson(data);
@@ -150,10 +156,7 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
         elevation: 0,
         title: const SizedBox.shrink(),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.black),
-            onPressed: () => Navigator.pushNamed(context, '/notifications'),
-          ),
+          // Removed the notification button from the AppBar
         ],
       ),
       body: _isLoading
@@ -167,7 +170,8 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1A524F),
                     borderRadius: BorderRadius.circular(24),
@@ -181,20 +185,19 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
                     ),
                   ),
                 ),
+                // Notification Button on the same line as Welcome
                 IconButton(
-                  icon: const Icon(Icons.person, color: Colors.black),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BinOwnerProfile(user: user!),
-                    ),
-                  ),
+                  icon: const Icon(Icons.notifications_outlined,
+                      color: Colors.black),
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/notifications'),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(20),
@@ -211,7 +214,8 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
                       'Fullness: Ascendingly',
                       'Fullness: Descendingly',
                     ]
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .map((e) => DropdownMenuItem(
+                        value: e, child: Text(e)))
                         .toList(),
                     onChanged: (val) => setState(() => _sortBy = val!),
                   ),
@@ -219,120 +223,168 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            Expanded(
-              child: ListView(
-                children: [
-                  // Bin 1 Row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: StreamBuilder<DatabaseEvent>(
-                          stream: _plasticRef.onValue,
-                          builder: (context, snapshot) {
-                            String level = '...';
-                            if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
-                              final val = snapshot.data!.snapshot.value;
-                              final rawStr = val.toString().replaceAll('%', '');
-                              final num lvl = num.tryParse(rawStr) ?? 0;
-                              level = '$lvl%';
-                              
-                              // Only send notification if level has changed
-                              if (level != _lastPlasticLevel && _lastPlasticLevel.isNotEmpty) {
-                                NotificationService().showBinLevelUpdate(
-                                  binName: 'Bin 1',
-                                  material: 'Plastic',
-                                  level: level,
-                                );
-                              }
-                              // Update last known level
-                              _lastPlasticLevel = level;
-                            }
-                            return _buildBinWithSingleButton(
-                              'Bin 1 Plastic',
-                              'assets/png/bin1.png',
-                              'Plastic -  $level',
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: StreamBuilder<DatabaseEvent>(
-                          stream: _metalRef.onValue,
-                          builder: (context, snapshot) {
-                            String level = '...';
-                            if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
-                              final val = snapshot.data!.snapshot.value;
-                              final rawStr = val.toString().replaceAll('%', '');
-                              final num lvl = num.tryParse(rawStr) ?? 0;
-                              level = '$lvl%';
-                              
-                              _handleBinLevelUpdate(level, _lastMetalLevel, 'Bin 1', 'Metal');
-                              _lastMetalLevel = level;
-                            }
-                            return _buildBinWithSingleButton(
-                              'Bin 1 Metal',
-                              'assets/png/bin2.png',
-                              'Metal - $level',
-                            );
-                          },
-                        ),
-                      ),
-                    ],
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Bin 1',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 16),
-                  // Bin 2 Row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: StreamBuilder<DatabaseEvent>(
-                          stream: _plastic2Ref.onValue,
-                          builder: (context, snapshot) {
-                            String level = '...';
-                            if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
-                              final val = snapshot.data!.snapshot.value;
-                              final rawStr = val.toString().replaceAll('%', '');
-                              final num lvl = num.tryParse(rawStr) ?? 0;
-                              level = '$lvl%';
-                              
-                              _handleBinLevelUpdate(level, _lastPlastic2Level, 'Bin 2', 'Plastic');
-                              _lastPlastic2Level = level;
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: StreamBuilder<DatabaseEvent>(
+                        stream: _plasticRef.onValue,
+                        builder: (context, snapshot) {
+                          String level = '...';
+                          if (snapshot.hasData &&
+                              snapshot.data!.snapshot.value != null) {
+                            final val =
+                                snapshot.data!.snapshot.value;
+                            final rawStr = val
+                                .toString()
+                                .replaceAll('%', '');
+                            final num lvl =
+                                num.tryParse(rawStr) ?? 0;
+                            level = '$lvl%';
+
+                            // Only send notification if level has changed
+                            if (level != _lastPlasticLevel &&
+                                _lastPlasticLevel.isNotEmpty) {
+                              NotificationService()
+                                  .showBinLevelUpdate(
+                                binName: 'Bin 1',
+                                material: 'Plastic',
+                                level: level,
+                              );
                             }
-                            return _buildBinWithSingleButton(
-                              'Bin 2 Plastic',
-                              'assets/png/bin1.png',
-                              'Plastic - $level',
-                            );
-                          },
-                        ),
+                            // Update last known level
+                            _lastPlasticLevel = level;
+                          }
+                          return _buildBinWithSingleButton(
+                            'Plastic',
+                            'assets/png/bin1.png',
+                            'Plastic -  $level',
+                          );
+                        },
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: StreamBuilder<DatabaseEvent>(
-                          stream: _metal2Ref.onValue,
-                          builder: (context, snapshot) {
-                            String level = '...';
-                            if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
-                              final val = snapshot.data!.snapshot.value;
-                              final rawStr = val.toString().replaceAll('%', '');
-                              final num lvl = num.tryParse(rawStr) ?? 0;
-                              level = '$lvl%';
-                              
-                              _handleBinLevelUpdate(level, _lastMetal2Level, 'Bin 2', 'Metal');
-                              _lastMetal2Level = level;
-                            }
-                            return _buildBinWithSingleButton(
-                              'Bin 2 Metal',
-                              'assets/png/bin2.png',
-                              'Metal - $level',
-                            );
-                          },
-                        ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: StreamBuilder<DatabaseEvent>(
+                        stream: _metalRef.onValue,
+                        builder: (context, snapshot) {
+                          String level = '...';
+                          if (snapshot.hasData &&
+                              snapshot.data!.snapshot.value != null) {
+                            final val =
+                                snapshot.data!.snapshot.value;
+                            final rawStr = val
+                                .toString()
+                                .replaceAll('%', '');
+                            final num lvl =
+                                num.tryParse(rawStr) ?? 0;
+                            level = '$lvl%';
+
+                            _handleBinLevelUpdate(level,
+                                _lastMetalLevel, 'Bin 1', 'Metal');
+                            _lastMetalLevel = level;
+                          }
+                          return _buildBinWithSingleButton(
+                            'Metal',
+                            'assets/png/bin2.png',
+                            'Metal - $level',
+                          );
+                        },
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Bin 2 Row
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Bin 2',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              ),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: StreamBuilder<DatabaseEvent>(
+                        stream: _plastic2Ref.onValue,
+                        builder: (context, snapshot) {
+                          String level = '...';
+                          if (snapshot.hasData &&
+                              snapshot.data!.snapshot.value != null) {
+                            final val =
+                                snapshot.data!.snapshot.value;
+                            final rawStr = val
+                                .toString()
+                                .replaceAll('%', '');
+                            final num lvl =
+                                num.tryParse(rawStr) ?? 0;
+                            level = '$lvl%';
+
+                            _handleBinLevelUpdate(
+                                level,
+                                _lastPlastic2Level,
+                                'Bin 2',
+                                'Plastic');
+                            _lastPlastic2Level = level;
+                          }
+                          return _buildBinWithSingleButton(
+                            'Plastic',
+                            'assets/png/bin1.png',
+                            'Plastic - $level',
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: StreamBuilder<DatabaseEvent>(
+                        stream: _metal2Ref.onValue,
+                        builder: (context, snapshot) {
+                          String level = '...';
+                          if (snapshot.hasData &&
+                              snapshot.data!.snapshot.value != null) {
+                            final val =
+                                snapshot.data!.snapshot.value;
+                            final rawStr = val
+                                .toString()
+                                .replaceAll('%', '');
+                            final num lvl =
+                                num.tryParse(rawStr) ?? 0;
+                            level = '$lvl%';
+
+                            _handleBinLevelUpdate(
+                                level,
+                                _lastMetal2Level,
+                                'Bin 2',
+                                'Metal');
+                            _lastMetal2Level = level;
+                          }
+                          return _buildBinWithSingleButton(
+                            'Metal',
+                            'assets/png/bin2.png',
+                            'Metal - $level',
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ],
         ),
@@ -422,3 +474,4 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
     );
   }
 }
+

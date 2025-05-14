@@ -17,15 +17,20 @@ class BinOwnerNotificationsScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: const Center( //Wrap the Text Widget with a Center Widget
+          child: Text(
+            'Notifications',
+            style: TextStyle(color: Colors.white), // Set the color to white
+          ),
+        ),
         backgroundColor: const Color(0xFF1A524F),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white), // Set the color to white
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_forever),
+            icon: const Icon(Icons.delete_forever, color: Colors.white), // Set the color to white
             tooltip: 'Clear all notifications',
             onPressed: () async {
               final query = await FirebaseFirestore.instance
@@ -74,7 +79,7 @@ class BinOwnerNotificationsScreen extends StatelessWidget {
                   color: Colors.red,
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 16),
-                  child: const Icon(Icons.delete, color: Colors.white),
+                  child: const Icon(Icons.delete, color: Colors.white), // Set the color to white
                 ),
                 onDismissed: (direction) async {
                   await docRef.reference.delete();
@@ -98,11 +103,11 @@ class BinOwnerNotificationsScreen extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(
                         Icons.notifications,
-                        color: Color(0xFF1A524F),
+                        color: Colors.white, //Set the color to white
                       ),
                       title: Text(
                         '$companyName accepted your offer for $amount kg. Please wait.',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
+                        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.white), // Set the color to white
                       ),
                     );
                   },
