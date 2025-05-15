@@ -145,12 +145,87 @@ class _RecyclingCompanyHomeScreenState
                   ),
                   const SizedBox(height: 24),
                   // You can add your specific content here below the header
+ Expanded(
+                    child: StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('sell_offers')
+                          .where('status', isEqualTo: 'pending')
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+
+                        final offers = snapshot.data?.docs ?? [];
+                        if (offers.isEmpty) {
+                          return const Center(child: Text("No pending sell offers."));
+                        }
+
+                        return ListView.builder(
+                          itemCount: offers.length,
+                          itemBuilder: (context, index) {
+                            final doc = offers[index];
+                            final offer = doc.data() as Map<String, dynamic>;
+                            final offerId = doc.id;
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEFF5F4),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text("${offer['kilograms']} KG", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                        Text("EGP ${offer['price']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF03342F)))
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text("${offer['city']}, ${offer['district']}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                                    const SizedBox(height: 8),
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF03342F),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                        ),
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => SellOfferDetailsScreen(offerId: offerId),
+                                            ),
+                                          );
+                                        },
+                                        child: const Text(
+                                          "View Details",
+                                          style: TextStyle(color: Colors.white), // Changed text color to white
+                                        ),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
                 ],
               ),
             ),
+
           ),
         );
       },
+
     );
   }
 

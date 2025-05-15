@@ -1,9 +1,146 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
-class BinOwnerNotificationsScreen extends StatelessWidget {
-  const BinOwnerNotificationsScreen({super.key});
+class BinOwnerNotificationsScreen extends StatefulWidget {
+  const BinOwnerNotificationsScreen({Key? key}) : super(key: key);
+
+  @override
+  _BinOwnerNotificationsScreenState createState() => _BinOwnerNotificationsScreenState();
+}
+
+class _BinOwnerNotificationsScreenState extends State<BinOwnerNotificationsScreen> with WidgetsBindingObserver {
+  String getNotificationMessage(String companyName, dynamic amount, String status) {
+    switch (status) {
+      case 'accepted':
+        return '$companyName accepted your offer for $amount kg. Please wait.';
+      case 'pending':
+        return 'Your offer for $amount kg is pending with $companyName.';
+      case 'rejected':
+        return '$companyName declined your offer for $amount kg.';
+      case 'completed':
+        return 'Transaction completed with $companyName for $amount kg.';
+      default:
+        return 'Offer status updated for $amount kg with $companyName.';
+    }
+  }
+  List<Map<String, dynamic>> _notifications = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _loadNotifications();
+  }
+
+  Future<void> _loadNotifications() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('userId', isEqualTo: user.uid)
+
+          .get();
+
+      if (!mounted) return;
+
+      setState(() {
+        _notifications = querySnapshot.docs
+            .map((doc) => {
+                  'id': doc.id,
+                  ...doc.data() as Map<String, dynamic>,
+                })
+            .toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error loading notifications: $e')),
+      );
+    }
+  }
+
+  Future<void> _markAsRead(String notificationId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(notificationId)
+          .update({'read': true});
+
+      setState(() {
+        final index = _notifications.indexWhere((n) => n['id'] == notificationId);
+        if (index != -1) {
+          _notifications[index]['read'] = true;
+        }
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error marking notification as read: $e')),
+      );
+    }
+  }
+
+  Future<void> _deleteNotification(String notificationId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('notifications')
+          .doc(notificationId)
+          .delete();
+
+      setState(() {
+        _notifications.removeWhere((n) => n['id'] == notificationId);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting notification: $e')),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadNotifications();
+    }
+  }
+
+  String getFormattedTimestamp(dynamic timestamp) {
+    if (timestamp == null) return '';
+    
+    if (timestamp is Timestamp) {
+      final date = timestamp.toDate();
+      return DateFormat('dd/MM/yyyy HH:mm').format(date);
+    } else if (timestamp is String) {
+      try {
+        final DateTime date = DateTime.parse(timestamp.replaceAll(' UTC+3', ''));
+        return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      } catch (e) {
+        return timestamp.toString();
+      }
+    }
+    
+    return timestamp.toString();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,109 +150,122 @@ class BinOwnerNotificationsScreen extends StatelessWidget {
         body: Center(child: Text('Please sign in to view notifications')),
       );
     }
-    final uid = user.uid;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Center( //Wrap the Text Widget with a Center Widget
+        title: const Center(
           child: Text(
             'Notifications',
-            style: TextStyle(color: Colors.white), // Set the color to white
+            style: TextStyle(color: Colors.white),
           ),
         ),
         backgroundColor: const Color(0xFF1A524F),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white), // Set the color to white
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_forever, color: Colors.white), // Set the color to white
-            tooltip: 'Clear all notifications',
-            onPressed: () async {
-              final query = await FirebaseFirestore.instance
-                  .collection('sell_offers')
-                  .where('userId', isEqualTo: uid)
-                  .where('status', isEqualTo: 'accepted')
-                  .get();
-              for (var doc in query.docs) {
-                await doc.reference.delete();
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('All notifications cleared')),
-              );
-            },
-          ),
-        ],
+        centerTitle: true,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('sell_offers')
-            .where('userId', isEqualTo: uid)
-            .where('status', isEqualTo: 'accepted')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          final docs = snapshot.data?.docs ?? [];
-          if (docs.isEmpty) {
-            return const Center(child: Text('No notifications'));
-          }
-          return ListView.builder(
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              final docRef = docs[index];
-              final offerData = docRef.data() as Map<String, dynamic>;
-              final amount = offerData['kilograms'] ?? offerData['price'];
-              final companyId = offerData['companyId'] as String?;
-              return Dismissible(
-                key: Key(docRef.id),
-                direction: DismissDirection.endToStart,
-                background: Container(
-                  color: Colors.red,
-                  alignment: Alignment.centerRight,
-                  padding: const EdgeInsets.only(right: 16),
-                  child: const Icon(Icons.delete, color: Colors.white), // Set the color to white
-                ),
-                onDismissed: (direction) async {
-                  await docRef.reference.delete();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Notification cleared')),
-                  );
-                },
-                child: FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(companyId)
-                      .get(),
-                  builder: (context, userSnap) {
-                    String companyName = 'Company';
-                    if (userSnap.connectionState == ConnectionState.waiting) {
-                      companyName = 'Loading...';
-                    } else if (userSnap.hasData && userSnap.data!.exists) {
-                      final data = userSnap.data!.data() as Map<String, dynamic>;
-                      companyName = data['name'] ?? data['email'] ?? companyName;
-                    }
-                    return ListTile(
-                      leading: const Icon(
-                        Icons.notifications,
-                        color: Colors.white, //Set the color to white
+      backgroundColor: Colors.white,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadNotifications,
+              child: _notifications.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No notifications',
+                        style: TextStyle(color: Colors.black),
                       ),
-                      title: Text(
-                        '$companyName accepted your offer for $amount kg. Please wait.',
-                        style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.white), // Set the color to white
-                      ),
-                    );
-                  },
-                ),
-              );
-            },
-          );
-        },
+                    )
+                  : ListView.builder(
+                      itemCount: _notifications.length,
+                      itemBuilder: (context, index) {
+                        final notification = _notifications[index];
+                        final notificationId = notification['id'];
+                        final notificationType = notification['type'];
+                        final isRead = notification['read'] ?? false;
+
+                        IconData iconData;
+                        switch (notificationType) {
+                          case 'offer_accepted':
+                            iconData = Icons.check_circle;
+                            break;
+                          case 'bin_level_update':
+                            iconData = Icons.delete;
+                            break;
+                          default:
+                            iconData = Icons.notifications;
+                        }
+
+                        return Dismissible(
+                          key: Key(notificationId),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            color: Colors.red,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 16),
+                            child: const Icon(Icons.delete, color: Colors.white),
+                          ),
+                          onDismissed: (direction) =>
+                              _deleteNotification(notificationId),
+                          child: GestureDetector(
+                            onTap: () => _markAsRead(notificationId),
+                            child: Container(
+                              color: isRead
+                                  ? Colors.transparent
+                                  : Colors.green.withOpacity(0.2),
+                              child: ListTile(
+                                leading: Icon(
+                                  iconData,
+                                  color: Colors.black87,
+                                ),
+                                title: Text(
+                                  notification['title'] ?? 'Notification',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      notification['message'] ?? '',
+                                      style: const TextStyle(color: Colors.black54),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      getFormattedTimestamp(
+                                          notification['timestamp']),
+                                      style: const TextStyle(
+                                        color: Colors.black54,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                trailing: !isRead
+                                    ? Container(
+                                        width: 12,
+                                        height: 12,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.green,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _loadNotifications,
+        backgroundColor: const Color(0xFF1A524F),
+        child: const Icon(Icons.refresh, color: Colors.white),
       ),
     );
   }

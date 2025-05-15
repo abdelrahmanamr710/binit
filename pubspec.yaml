@@ -28,6 +28,13 @@ dev_dependencies:
     sdk: flutter
   pigeon: ^25.3.0
   flutter_lints: ^5.0.0
+  flutter_native_splash: ^2.2.17
+  flutter_launcher_icons: ^0.14.3
+
+flutter_icons:
+  image_path: "assets/logo/logo.png"
+  android: true
+  ios: true
 
 flutter:
   uses-material-design: true
