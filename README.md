@@ -1,76 +1,147 @@
-# binit
+# Bin-It
 
-Graduation Project
+A Flutter application for monitoring bin levels and managing recycling operations between bin owners and recycling companies.
+
+## Overview
+
+Bin-It is a comprehensive waste management solution that connects bin owners with recycling companies. The app provides real-time bin level monitoring, automated notifications, and a marketplace for selling recyclable materials.
+
+## Architecture
+
+The app follows a clean architecture pattern with the following main components:
+
+### 1. Screens
+
+#### Authentication Screens
+- `splash_screen.dart`: Initial loading screen
+- `login_screen.dart`: User authentication
+- `signup_as_screen.dart`: User type selection (Bin Owner/Recycling Company)
+- `bin_owner_signup_screen.dart`: Bin owner registration
+- `recyclingCompany_signup_screen.dart`: Recycling company registration
+
+#### Bin Owner Screens
+- `binOwner_homescreen.dart`: Main dashboard for bin owners
+- `binOwner_profile.dart`: User profile management
+- `binOwner_notifications.dart`: Notification center
+- `binOwner_stock.dart`: Stock management
+- `binOwner_sell.dart`: Material selling interface
+- `binOwner_orders.dart`: Order history and management
+
+#### Recycling Company Screens
+- `recyclingCompany_homescreen.dart`: Main dashboard for recycling companies
+- `recyclingCompany_profile.dart`: Company profile management
+- `recyclingCompany_orderDetails.dart`: Detailed order view
+- `recyclingCompany_previousOrders.dart`: Order history
+
+### 2. Services
+
+#### Core Services
+- `auth_service.dart`: Handles user authentication and session management
+- `notification_service.dart`: Manages local and push notifications
+- `fcm_service.dart`: Firebase Cloud Messaging integration
+- `firebase_background_service.dart`: Background data synchronization
+- `user_credentials_cache_service.dart`: Local user data caching
+- `firebase_helper.dart`: Firebase utility functions
+
+### 3. Models
+- `user_model.dart`: User data structure
+- `bin_model.dart`: Bin data structure
+
+## Features
+
+### Real-time Bin Monitoring
+- Firebase Realtime Database integration for instant updates
+- Background service for continuous monitoring
+- Push notifications for level changes
+
+### Authentication System
+- Email/password authentication
+- User type-specific registration flows
+- Secure session management
+
+### Notification System
+- Multi-layered notification approach:
+  1. Firebase Realtime Database listeners
+  2. Firebase Cloud Messaging (FCM)
+  3. Native Android background service
+
+### Data Management
+- Offline data persistence
+- Real-time synchronization
+- Secure data caching
+
+## Technical Implementation
+
+### Firebase Integration
+- Authentication
+- Realtime Database
+- Cloud Functions
+- Cloud Messaging
+- Firestore
+
+### Background Processing
+- Native Android service for reliable background monitoring
+- Automatic service restart on device boot
+- Battery-efficient background operations
+
+### State Management
+- Provider pattern for state management
+- Local storage for offline data
+- Real-time data synchronization
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+1. Clone the repository
+2. Install Flutter dependencies:
+   ```bash
+   flutter pub get
+   ```
+3. Configure Firebase:
+   - Add your `google-services.json` to `android/app/`
+   - Add your `GoogleService-Info.plist` to `ios/Runner/`
+4. Run the app:
+   ```bash
+   flutter run
+   ```
 
-A few resources to get you started if this is your first Flutter project:
+## Dependencies
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
-
-# Bin-It App
-
-Bin-It is a Flutter application that monitors bin levels and sends notifications to users when levels change.
-
-## Background Notification System
-
-The app uses a multi-layered approach to ensure reliable background notifications:
-
-### 1. Firebase Realtime Database Listeners
-
-The primary mechanism for real-time bin level monitoring is Firebase Realtime Database listeners. These listeners are set up in the `FirebaseBackgroundService` class and will trigger notifications whenever bin levels change in the database.
-
-Key features:
-- Real-time updates (no polling delay)
-- Works when the app is in the foreground
-- Persists data for offline use
-- Automatically reconnects after network interruptions
-
-### 2. Firebase Cloud Messaging (FCM)
-
-As a backup mechanism, the app also uses Firebase Cloud Messaging to receive push notifications from the server. This works even when the app is completely closed.
-
-Key features:
-- Server-initiated notifications
-- Works when the app is closed
-- Low battery consumption
-
-### 3. Native Android Background Service
-
-For additional reliability on Android, the app includes a native Kotlin background service (`DatabaseListenerService.kt`) that runs independently of the Flutter app. This service:
-- Monitors bin levels in the background
-- Starts automatically on device boot
-- Uses Android's foreground service capabilities for reliable operation
-
-## How It Works
-
-1. When the app starts, it initializes the `FirebaseBackgroundService` which sets up real-time database listeners
-2. The service listens for changes to the user's registered bins
-3. When a bin level changes, a notification is displayed to the user
-4. The native Android service provides an additional layer of monitoring
-
-## Implementation Details
-
-The background notification system is implemented across several files:
-
-- `lib/services/firebase_background_service.dart`: Main Flutter implementation of database listeners
-- `lib/services/notification_service.dart`: Handles displaying notifications to the user
-- `lib/services/fcm_service.dart`: Configures Firebase Cloud Messaging
-- `android/app/src/main/kotlin/.../DatabaseListenerService.kt`: Native Android background service
-- `android/app/src/main/kotlin/.../BootReceiver.kt`: Restarts services after device reboot
+Key dependencies include:
+- `firebase_core`: Firebase integration
+- `firebase_auth`: Authentication
+- `firebase_database`: Realtime Database
+- `firebase_messaging`: Push notifications
+- `flutter_local_notifications`: Local notifications
+- `cloud_functions`: Firebase Cloud Functions
+- `flutter_secure_storage`: Secure data storage
 
 ## Troubleshooting
 
-If notifications aren't working:
+### Common Issues
 
-1. Ensure Firebase is properly configured
-2. Check that notification permissions are granted
-3. Verify the app has proper background permissions
-4. Make sure the device isn't in battery optimization mode
+1. Notification Issues
+   - Check Firebase configuration
+   - Verify notification permissions
+   - Ensure background service is running
+
+2. Authentication Problems
+   - Verify Firebase configuration
+   - Check internet connectivity
+   - Clear app cache if needed
+
+3. Background Service Issues
+   - Check battery optimization settings
+   - Verify service permissions
+   - Restart the app
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
