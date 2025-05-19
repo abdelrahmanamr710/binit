@@ -151,6 +151,37 @@ class _BinOwnerNotificationsScreenState extends State<BinOwnerNotificationsScree
       );
     }
 
+    // Classify and sort notifications
+    List<Map<String, dynamic>> sellOfferNotifications = _notifications
+        .where((n) => [
+              'offer_accepted',
+              'offer_pending',
+              'offer_rejected',
+              'offer_completed',
+              'offer_status',
+              'offer_updated',
+              'offer_created',
+              'offer_cancelled',
+            ].contains(n['type']))
+        .toList();
+    List<Map<String, dynamic>> binLevelNotifications = _notifications
+        .where((n) => n['type'] == 'bin_level_update')
+        .toList();
+
+    int getTimestamp(Map<String, dynamic> n) {
+      final ts = n['timestamp'];
+      if (ts == null) return 0;
+      if (ts is Timestamp) return ts.millisecondsSinceEpoch;
+      if (ts is String) {
+        try {
+          return DateTime.parse(ts.replaceAll(' UTC+3', '')).millisecondsSinceEpoch;
+        } catch (_) {}
+      }
+      return 0;
+    }
+    sellOfferNotifications.sort((a, b) => getTimestamp(b).compareTo(getTimestamp(a)));
+    binLevelNotifications.sort((a, b) => getTimestamp(b).compareTo(getTimestamp(a)));
+
     return Scaffold(
       appBar: AppBar(
         title: const Center(
@@ -171,101 +202,115 @@ class _BinOwnerNotificationsScreenState extends State<BinOwnerNotificationsScree
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _loadNotifications,
-              child: _notifications.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'No notifications',
-                        style: TextStyle(color: Colors.black),
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: _notifications.length,
-                      itemBuilder: (context, index) {
-                        final notification = _notifications[index];
-                        final notificationId = notification['id'];
-                        final notificationType = notification['type'];
-                        final isRead = notification['read'] ?? false;
-
-                        IconData iconData;
-                        switch (notificationType) {
-                          case 'offer_accepted':
-                            iconData = Icons.check_circle;
-                            break;
-                          case 'bin_level_update':
-                            iconData = Icons.delete;
-                            break;
-                          default:
-                            iconData = Icons.notifications;
-                        }
-
-                        return Dismissible(
-                          key: Key(notificationId),
-                          direction: DismissDirection.endToStart,
-                          background: Container(
-                            color: Colors.red,
-                            alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 16),
-                            child: const Icon(Icons.delete, color: Colors.white),
-                          ),
-                          onDismissed: (direction) =>
-                              _deleteNotification(notificationId),
-                          child: GestureDetector(
-                            onTap: () => _markAsRead(notificationId),
-                            child: Container(
-                              color: isRead
-                                  ? Colors.transparent
-                                  : Colors.green.withOpacity(0.2),
-                              child: ListTile(
-                                leading: Icon(
-                                  iconData,
-                                  color: Colors.black87,
-                                ),
-                                title: Text(
-                                  notification['title'] ?? 'Notification',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      notification['message'] ?? '',
-                                      style: const TextStyle(color: Colors.black54),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      getFormattedTimestamp(
-                                          notification['timestamp']),
-                                      style: const TextStyle(
-                                        color: Colors.black54,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                trailing: !isRead
-                                    ? Container(
-                                        width: 12,
-                                        height: 12,
-                                        decoration: const BoxDecoration(
-                                          color: Colors.green,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
+              child: ListView(
+                children: [
+                  if (sellOfferNotifications.isNotEmpty) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Text('Sell Offers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
+                    ...sellOfferNotifications.map((notification) => _buildNotificationTile(notification)).toList(),
+                  ],
+                  if (binLevelNotifications.isNotEmpty) ...[
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Text('Bin Levels', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                    ...binLevelNotifications.map((notification) => _buildNotificationTile(notification)).toList(),
+                  ],
+                  if (sellOfferNotifications.isEmpty && binLevelNotifications.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.only(top: 32),
+                        child: Text(
+                          'No notifications',
+                          style: TextStyle(color: Colors.black),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: _loadNotifications,
         backgroundColor: const Color(0xFF1A524F),
         child: const Icon(Icons.refresh, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildNotificationTile(Map<String, dynamic> notification) {
+    final notificationId = notification['id'];
+    final notificationType = notification['type'];
+    final isRead = notification['read'] ?? false;
+
+    IconData iconData;
+    switch (notificationType) {
+      case 'offer_accepted':
+        iconData = Icons.check_circle;
+        break;
+      case 'bin_level_update':
+        iconData = Icons.delete;
+        break;
+      default:
+        iconData = Icons.notifications;
+    }
+
+    return Dismissible(
+      key: Key(notificationId),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        color: Colors.red,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16),
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      onDismissed: (direction) => _deleteNotification(notificationId),
+      child: GestureDetector(
+        onTap: () => _markAsRead(notificationId),
+        child: Container(
+          color: isRead ? Colors.transparent : Colors.green.withOpacity(0.2),
+          child: ListTile(
+            leading: Icon(
+              iconData,
+              color: Colors.black87,
+            ),
+            title: Text(
+              notification['title'] ?? 'Notification',
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  notification['message'] ?? '',
+                  style: const TextStyle(color: Colors.black54),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  getFormattedTimestamp(notification['timestamp']),
+                  style: const TextStyle(
+                    color: Colors.black54,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            trailing: !isRead
+                ? Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                    ),
+                  )
+                : null,
+          ),
+        ),
       ),
     );
   }

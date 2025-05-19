@@ -253,47 +253,218 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
     }
   }
 
-  Widget _buildBinWithSingleButton(
-      String title,
-      String asset,
-      String subtitle,
-      ) {
-    return Column(
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+  Future<void> _handleEmptyBin(String binId, String materialType) async {
+    // Get correct path for the bin level
+    final levelPath = materialType == 'plastic'
+        ? 'plastic/level'
+        : 'metal/level';
+    final binRef = FirebaseDatabase.instance.ref('BIN/$binId/$levelPath');
+    final snapshot = await binRef.get();
+    if (!snapshot.exists) return;
+    
+    final currentLevel = (snapshot.value is int)
+        ? snapshot.value as int
+        : int.tryParse(snapshot.value.toString()) ?? 0;
+    
+    // Show confirmation dialog
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Empty Bin'),
+        content: Text('Current bin level is $currentLevel%. Are you sure you want to empty this bin?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
           ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          height: 120,
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Empty'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      // Get current bin capacity
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
+
+      final binDoc = await FirebaseFirestore.instance
+          .collection('registered_bins')
+          .doc(binId)
+          .get();
+
+      if (!binDoc.exists) return;
+      
+      final binData = binDoc.data()!;
+      final maxCapacity = materialType == 'plastic' 
+          ? (binData['plastic_max_capacity'] as num?)?.toDouble() ?? 50.0
+          : (binData['metals_max_capacity'] as num?)?.toDouble() ?? 30.0;
+
+      // Calculate weight based on current level
+      final weight = (currentLevel / 100) * maxCapacity;
+
+      // Store previous Firestore values for undo (all relevant fields for the material)
+      Map<String, dynamic> prevMaterialFields = {};
+      if (materialType == 'plastic') {
+        for (final key in binData.keys) {
+          if (key.startsWith('plastic_')) {
+            prevMaterialFields[key] = binData[key];
+          }
+        }
+      } else {
+        for (final key in binData.keys) {
+          if (key.startsWith('metal_')) {
+            prevMaterialFields[key] = binData[key];
+          }
+        }
+      }
+
+      // Update Firestore
+      await binDoc.reference.update({
+        '${materialType == 'plastic' ? 'plastic_total_weight' : 'metal_total_weight'}': FieldValue.increment(weight),
+        '${materialType == 'plastic' ? 'plastic_emptied_count' : 'metal_emptied_count'}': FieldValue.increment(1),
+        '${materialType == 'plastic' ? 'plastic_last_emptied' : 'metal_last_emptied'}': FieldValue.serverTimestamp(),
+      });
+
+      // Reset bin level to 0 at the correct path
+      await binRef.set(0);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bin emptied successfully')),
+        );
+      }
+
+      // --- Undo logic: listen for 5 seconds ---
+      bool undone = false;
+      StreamSubscription<DatabaseEvent>? sub;
+      sub = binRef.onValue.listen((event) async {
+        final value = event.snapshot.value;
+        int newLevel = (value is int)
+            ? value
+            : int.tryParse(value.toString().replaceAll('%', '')) ?? 0;
+        if (!undone && newLevel == currentLevel && newLevel != 0) {
+          undone = true;
+          // Undo Firestore changes: restore all previous fields for the material
+          await binDoc.reference.update(prevMaterialFields);
+          // Restore bin level
+          await binRef.set(currentLevel);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('The bin wasn\'t emptied and the levels returned to previous state')),
+            );
+          }
+          await sub?.cancel();
+        }
+      });
+      await Future.delayed(const Duration(seconds: 5));
+      await sub?.cancel();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error emptying bin: $e')),
+        );
+      }
+    }
+  }
+
+  Widget _buildBinCard(String binId, String materialType) {
+    String imagePath = materialType == 'plastic'
+        ? 'assets/png/bin1.png'
+        : 'assets/png/bin2.png';
+    final levelPath = materialType == 'plastic'
+        ? 'plastic/level'
+        : 'metal/level';
+    final binRef = FirebaseDatabase.instance.ref('BIN/$binId/$levelPath');
+    return StreamBuilder<DatabaseEvent>(
+      stream: binRef.onValue,
+      builder: (context, snapshot) {
+        int level = 0;
+        if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
+          final rawValue = snapshot.data!.snapshot.value;
+          level = (rawValue is int)
+              ? rawValue
+              : int.tryParse(rawValue.toString().replaceAll('%', '')) ?? 0;
+        }
+        return Container(
+          margin: const EdgeInsets.symmetric(vertical: 8.0),
+          padding: const EdgeInsets.all(8.0),
           decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage(asset),
-              fit: BoxFit.contain,
-            ),
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(10.0),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(subtitle, style: const TextStyle(fontSize: 16)),
-        const SizedBox(height: 8),
-        ElevatedButton(
-          onPressed: () {},
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFE0F2F7),
-            foregroundColor: const Color(0xFF26A69A),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Material type (title)
+              Center(
+                child: Text(
+                  materialType == 'plastic' ? 'Plastic Bin' : 'Metal Bin',
+                  style: const TextStyle(
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 8.0),
+              // 2. Bin PNG
+              SizedBox(
+                width: double.infinity,
+                height: 110,
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              const SizedBox(height: 8.0),
+              // 3. Percentage
+              Center(
+                child: Text(
+                  'Level: $level%',
+                  style: TextStyle(
+                    fontSize: 16.0,
+                    color: level > 75 ? Colors.red : Colors.black,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(height: 8.0),
+              // 4. Fill bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: LinearProgressIndicator(
+                  value: level / 100,
+                  minHeight: 6,
+                  backgroundColor: Colors.grey[300],
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    level > 75 ? Colors.red : Colors.green,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12.0),
+              Center(
+                child: ElevatedButton(
+                  onPressed: () => _handleEmptyBin(binId, materialType),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF26A69A),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20.0),
+                    ),
+                  ),
+                  child: const Text('Empty'),
+                ),
+              ),
+            ],
           ),
-          child: const Text('Empty'),
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -566,36 +737,20 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
                       children: isPlasticFirst
                           ? [
                               Expanded(
-                                child: _buildBinWithSingleButton(
-                                  'Plastic Bin',
-                                  'assets/png/bin1.png',
-                                  'Current Level: ${bin.plasticLevel}%',
-                                ),
+                                child: _buildBinCard(bin.binId, 'plastic'),
                               ),
-                              const SizedBox(width: 16),
+                              const SizedBox(width: 8),
                               Expanded(
-                                child: _buildBinWithSingleButton(
-                                  'Metal Bin',
-                                  'assets/png/bin2.png',
-                                  'Current Level: ${bin.metalLevel}%',
-                                ),
+                                child: _buildBinCard(bin.binId, 'metal'),
                               ),
                             ]
                           : [
                               Expanded(
-                                child: _buildBinWithSingleButton(
-                                  'Metal Bin',
-                                  'assets/png/bin2.png',
-                                  'Current Level: ${bin.metalLevel}%',
-                                ),
+                                child: _buildBinCard(bin.binId, 'metal'),
                               ),
-                              const SizedBox(width: 16),
+                              const SizedBox(width: 8),
                               Expanded(
-                                child: _buildBinWithSingleButton(
-                                  'Plastic Bin',
-                                  'assets/png/bin1.png',
-                                  'Current Level: ${bin.plasticLevel}%',
-                                ),
+                                child: _buildBinCard(bin.binId, 'plastic'),
                               ),
                             ],
                     ),

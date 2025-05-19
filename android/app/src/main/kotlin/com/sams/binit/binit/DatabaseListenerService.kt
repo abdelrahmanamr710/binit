@@ -263,7 +263,7 @@ class DatabaseListenerService : Service() {
         val sharedPrefs = getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE)
         
         // Create a unique notification ID
-        val notificationId = "bin_${binId}_${material.toLowerCase()}_${level.replace("%", "")}"
+        val notificationId = "bin_${binId}_${material.lowercase()}_${level.replace("%", "")}"
         
         // Get the list of sent notifications
         val sentNotifications = sharedPrefs.getStringSet("flutter.sent_notifications", setOf()) ?: setOf()
