@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/services.dart';
 import 'config/app_theme.dart';
 import 'screens/splash_screen.dart';
 import 'screens/login_screen.dart';
@@ -13,24 +14,104 @@ import 'src/pigeon.g.dart';
 import 'screens/binOwner_homescreen.dart';
 import 'services/notification_service.dart';
 import 'services/fcm_service.dart';
+import 'services/user_credentials_cache_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'screens/recyclingCompany_homescreen.dart';
 import 'screens/binOwner_profile.dart';
 import 'screens/binOwner_notifications.dart';
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Firebase
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+
+// Top-level function for handling Firebase messages in background
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // Ensure Firebase is initialized
   await Firebase.initializeApp();
   
-  // Wait for Firebase to be ready
-  await Future.delayed(const Duration(seconds: 1));
-  
-  // Initialize services
+  // Initialize notification service
   await NotificationService().init();
-  await FCMService().init();
+
+  print("Handling a background message: ${message.messageId}");
+  print("Message data: ${message.data}");
   
-  runApp(const BinItApp());
+  // Extract data from the message
+  final data = message.data;
+  final messageType = data['type'] ?? '';
+  
+  try {
+    // Initialize the user credentials cache service
+    final userCredentialsCacheService = UserCredentialsCacheService();
+    
+    // Check if the cache is valid
+    final isCacheValid = await userCredentialsCacheService.isCacheValid();
+    if (!isCacheValid) {
+      print("User credentials cache is not valid, skipping notification");
+      return;
+    }
+    
+    // Check if the user is a bin owner
+    final isBinOwner = await userCredentialsCacheService.isCachedUserBinOwner();
+    
+    // Handle different message types
+    switch (messageType) {
+      case 'bin_level_update':
+        final binName = data['binName'] ?? 'Unknown';
+        final material = data['material'] ?? 'Unknown';
+        final level = data['level'] ?? '0';
+        final binId = data['binId'] ?? '';
+        
+        // Only show bin level updates to bin owners who own this bin
+        if (isBinOwner) {
+          if (binId.isNotEmpty) {
+            // Check if this bin is registered to the cached user
+            final isBinRegistered = await userCredentialsCacheService.isBinRegisteredToCachedUser(binId);
+            if (!isBinRegistered) {
+              print("Bin $binId is not registered to the cached user, skipping notification");
+              return;
+            }
+          }
+          
+          await NotificationService().showBinLevelUpdate(
+            binName: binName,
+            material: material,
+            level: level,
+          );
+        }
+        break;
+        
+      case 'offer_accepted':
+        final company = data['company'] ?? 'Unknown';
+        final kilos = num.tryParse(data['kilos'] ?? '0') ?? 0;
+        
+        // Only show offer accepted notifications to bin owners
+        if (isBinOwner) {
+          await NotificationService().showOfferAccepted(
+            company: company,
+            kilos: kilos,
+          );
+        }
+        break;
+        
+      default:
+        // For unknown message types, show a generic notification
+        if (message.notification != null) {
+          final title = message.notification!.title ?? 'New Notification';
+          final body = message.notification!.body ?? 'You have a new notification';
+          
+          // Use notification service to show the notification
+          print("Showing generic notification: $title - $body");
+          await NotificationService().showBinLevelUpdate(
+            binName: 'Bin-It',
+            material: 'System',
+            level: 'notification received',
+          );
+        }
+    }
+  } catch (e) {
+    print("Error handling background message: $e");
+  }
 }
 
 class BinItApp extends StatefulWidget {
@@ -59,7 +140,7 @@ class _BinItAppState extends State<BinItApp> {
       
       setState(() {
         if (currentUser != null) {
-          _initialRoute = currentUser.userType == 'bin_owner'
+          _initialRoute = currentUser.userType == 'binOwner'
               ? '/bin_owner_home'
               : '/recycling_company_home';
           print('Setting initial route to: $_initialRoute');
@@ -99,5 +180,47 @@ class _BinItAppState extends State<BinItApp> {
       },
     );
   }
+}
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Firebase
+  await Firebase.initializeApp();
+  
+  // Set up the background message handler BEFORE initializing FCM
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
+  // Optimize Firestore settings for better performance and offline support
+  FirebaseFirestore.instance.settings = Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
+  
+  // Enable offline persistence for Realtime Database
+  try {
+    FirebaseDatabase.instance.setPersistenceEnabled(true);
+    FirebaseDatabase.instance.setPersistenceCacheSizeBytes(10000000); // 10MB cache
+  } catch (e) {
+    print('Persistence already enabled or could not be enabled: $e');
+  }
+  
+  // Initialize services
+  await NotificationService().init();
+  await FCMService().init();
+  
+  // Start the database listener service through the method channel
+  try {
+    const methodChannel = MethodChannel('com.sams.binit/background_service');
+    await methodChannel.invokeMethod('startDatabaseListenerService');
+    print("Database listener service started successfully from main");
+  } catch (e) {
+    print('Failed to start database listener service: $e');
+  }
+  
+  // For development only: Use Firebase Functions emulator if running locally
+  // FirebaseFunctions.instance.useFunctionsEmulator('localhost', 5001);
+  
+  runApp(const BinItApp());
 }
 

@@ -5,7 +5,9 @@ import 'package:binit/screens/binOwner_stock.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:binit/services/notification_service.dart';
+import 'package:binit/services/fcm_service.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'dart:async';
 
 class BinOwnerHomeScreen extends StatefulWidget {
   final int currentIndex;
@@ -22,25 +24,39 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
 
   // Map to store database references for registered bins
   final Map<String, Map<String, DatabaseReference>> _binRefs = <String, Map<String, DatabaseReference>>{};
+  
+  // Store stream subscriptions to properly dispose them
+  final List<StreamSubscription<DatabaseEvent>> _levelSubscriptions = [];
+  final List<StreamSubscription<QuerySnapshot>> _firestoreSubscriptions = [];
 
   // Track seen offers
   final Set<String> _seenOffers = {};
 
   // Track last bin levels to avoid duplicate notifications
-  String _lastPlasticLevel = '';
-  String _lastMetalLevel = '';
-  String _lastPlastic2Level = '';
-  String _lastMetal2Level = '';
+  final Map<String, Map<String, String>> _lastLevels = {};
 
-  // Helper function to handle bin level updates
+  // Helper function to handle bin level update with debouncing
   void _handleBinLevelUpdate(
-      String newLevel, String lastLevel, String binName, String material) {
-    if (newLevel != lastLevel && lastLevel.isNotEmpty) {
+      String newLevel, String binId, String material) {
+    // Initialize levels map for this bin if not exists
+    _lastLevels[binId] ??= {
+      'plastic': '',
+      'metal': ''
+    };
+
+    // Get the current level for this material
+    final currentLevel = _lastLevels[binId]![material.toLowerCase()];
+
+    // Only notify if level has changed
+    if (newLevel != currentLevel) {
       NotificationService().showBinLevelUpdate(
-        binName: binName,
+        binName: 'Bin $binId',
         material: material,
         level: newLevel,
       );
+      
+      // Update the stored level without triggering setState
+      _lastLevels[binId]![material.toLowerCase()] = newLevel;
     }
   }
 
@@ -55,9 +71,18 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
     _startAcceptedOfferListener();
     _fetchUserData();
     _setupRegisteredBins();
-    setState(() {
-      _isLoading = false;
-    });
+  }
+  
+  @override
+  void dispose() {
+    // Cancel all subscriptions to prevent memory leaks
+    for (var subscription in _levelSubscriptions) {
+      subscription.cancel();
+    }
+    for (var subscription in _firestoreSubscriptions) {
+      subscription.cancel();
+    }
+    super.dispose();
   }
 
   Future<void> _setupRegisteredBins() async {
@@ -66,11 +91,17 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
       if (uid == null) return;
 
       // Listen to registered bins for this user
-      _registeredBinsRef
+      final subscription = _registeredBinsRef
           .where('owners', arrayContains: uid)
           .snapshots()
           .listen((snapshot) {
         if (!mounted) return;
+        
+        // Cancel existing subscriptions before creating new ones
+        for (var subscription in _levelSubscriptions) {
+          subscription.cancel();
+        }
+        _levelSubscriptions.clear();
         
         final Map<String, Map<String, DatabaseReference>> newBinRefs = {};
         
@@ -80,19 +111,43 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
           final binPath = data['bin_path'] ?? '/BIN/$binId';
           
           // Create database reference for this bin
+          final plasticRef = FirebaseDatabase.instance.ref('$binPath/plastic/level');
+          final metalRef = FirebaseDatabase.instance.ref('$binPath/metal/level');
+
+          // Set up real-time listeners for level changes with optimized approach
+          final plasticSubscription = plasticRef.onValue.listen((event) {
+            if (!mounted) return;
+            final newLevel = event.snapshot.value?.toString() ?? '0%';
+            _handleBinLevelUpdate(newLevel, binId, 'Plastic');
+          });
+          _levelSubscriptions.add(plasticSubscription);
+
+          final metalSubscription = metalRef.onValue.listen((event) {
+            if (!mounted) return;
+            final newLevel = event.snapshot.value?.toString() ?? '0%';
+            _handleBinLevelUpdate(newLevel, binId, 'Metal');
+          });
+          _levelSubscriptions.add(metalSubscription);
+
           newBinRefs[binId] = <String, DatabaseReference>{
-            'plastic': FirebaseDatabase.instance.ref('$binPath/plastic/level'),
-            'metal': FirebaseDatabase.instance.ref('$binPath/metal/level')
+            'plastic': plasticRef,
+            'metal': metalRef
           };
         }
         
         setState(() {
           _binRefs.clear();
           _binRefs.addAll(newBinRefs);
+          _isLoading = false;
         });
       });
+      
+      _firestoreSubscriptions.add(subscription);
     } catch (e) {
       debugPrint('Error setting up registered bins: $e');
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -100,8 +155,16 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
     try {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) {
-        final doc =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        // Use cache-first approach for better performance
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .get(GetOptions(source: Source.cache))
+            .catchError((_) => 
+              // Fallback to server if cache fails
+              FirebaseFirestore.instance.collection('users').doc(uid).get()
+            );
+            
         if (doc.exists) {
           final data = doc.data() as Map<String, dynamic>;
           user = UserModel.fromJson(data);
@@ -114,17 +177,14 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
       }
     } catch (_) {
       userName = 'Error';
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
   void _startAcceptedOfferListener() {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    FirebaseFirestore.instance
+    
+    final subscription = FirebaseFirestore.instance
         .collection('sell_offers')
         .where('userId', isEqualTo: uid)
         .where('status', isEqualTo: 'accepted')
@@ -139,6 +199,27 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
         );
       }
     });
+    
+    _firestoreSubscriptions.add(subscription);
+  }
+
+  // Test notifications function
+  Future<void> _testNotifications() async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sending test notification...')),
+      );
+      
+      await FCMService().sendTestNotification();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Test notification sent!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 
   Widget _buildBinWithSingleButton(
@@ -305,6 +386,41 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
                 },
               );
             },
+          ),
+          IconButton(
+            icon: const Icon(Icons.notification_add),
+            tooltip: 'Test Notification',
+            onPressed: _testNotifications,
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            onPressed: () {
+              Navigator.pushNamed(context, '/notifications');
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.pushNamed(
+                context,
+                '/bin_owner_profile',
+                arguments: user,
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.cloud, color: Colors.white),
+            onPressed: () async {
+              // Test the Cloud Function
+              await FCMService().sendTestNotificationViaCloudFunction();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Test notification sent via Cloud Function'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            tooltip: 'Test Cloud Function',
           ),
         ],
       ),

@@ -6,7 +6,7 @@ buildscript {
     dependencies {
         classpath("com.google.gms:google-services:4.4.2") // Correct: Inside dependencies {}
         classpath("com.android.tools.build:gradle:8.2.2") // Add this line to add the android gradle plugin
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.20") // Add this line to add the kotlin gradle plugin
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10") // Updated to a compatible version
     }
 }
 

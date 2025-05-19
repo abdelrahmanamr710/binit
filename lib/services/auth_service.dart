@@ -2,11 +2,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/user_model.dart'; // Import UserModel
+import 'package:binit/services/user_credentials_cache_service.dart'; // Import UserCredentialsCacheService
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final UserCredentialsCacheService _credentialsCacheService = UserCredentialsCacheService();
   
   // Check if user is already signed in and return user data
   Future<UserModel?> getCurrentUser() async {
@@ -34,11 +36,15 @@ class AuthService {
             await _storage.write(key: 'uid', value: currentUser.uid);
           }
           Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+          
+          // Cache user credentials for background notifications
+          await _updateUserCredentialsCache(currentUser.uid, userData);
+          
           return UserModel.fromJson(userData);
         } else {
           print('No Firestore document found for current user');
         }
-      } else {
+      
         print('No current Firebase user found');
       }
       
@@ -49,20 +55,73 @@ class AuthService {
         if (userDoc.exists) {
           print('Found user document using stored credentials');
           Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+          
+          // Cache user credentials for background notifications
+          await _updateUserCredentialsCache(storedUid, userData);
+          
           return UserModel.fromJson(userData);
         } else {
           print('No user document found for stored credentials');
           // Clear invalid stored credentials
           await _storage.deleteAll();
+          await _credentialsCacheService.clearCache();
           print('Cleared invalid stored credentials');
         }
       }
+      
+      // If no valid Firebase or stored credentials, check if we have cached credentials
+      if (await _credentialsCacheService.isCacheValid()) {
+        final cachedUserId = await _credentialsCacheService.getCachedUserId();
+        if (cachedUserId != null) {
+          print('Using cached credentials for background notifications');
+          // We don't need to return a full user model here as this is just for background notifications
+          // The app will redirect to login when opened
+        }
+      }
+      
       print('No valid user found, returning null');
       return null;
     } catch (error) {
       print('Error getting current user: $error');
       print('Stack trace: ${StackTrace.current}');
       return null;
+    }
+  }
+
+  // Helper method to update user credentials cache
+  Future<void> _updateUserCredentialsCache(String userId, Map<String, dynamic> userData) async {
+    try {
+      final userType = userData['userType'] as String?;
+      
+      if (userType == 'binOwner') {
+        // Get registered bins for bin owner
+        final registeredBinsSnapshot = await _firestore
+            .collection('registered_bins')
+            .where('owners', arrayContains: userId)
+            .get();
+        
+        final registeredBins = registeredBinsSnapshot.docs.map((doc) => doc.id).toList();
+        
+        // Cache user credentials
+        await _credentialsCacheService.cacheUserCredentials(
+          userId: userId,
+          userType: 'binOwner',
+          registeredBins: registeredBins,
+        );
+        
+        print('Cached credentials for bin owner with ${registeredBins.length} registered bins');
+      } else if (userType == 'recyclingCompany') {
+        // Cache user credentials for recycling company
+        await _credentialsCacheService.cacheUserCredentials(
+          userId: userId,
+          userType: 'recyclingCompany',
+          registeredBins: [], // Recycling companies don't have registered bins
+        );
+        
+        print('Cached credentials for recycling company');
+      }
+    } catch (e) {
+      print('Error updating user credentials cache: $e');
     }
   }
 
@@ -94,6 +153,14 @@ class AuthService {
           taxId: taxId, // Store taxId
         );
         await _firestore.collection('users').doc(user.uid).set(newUser.toJson());
+        
+        // Cache user credentials for background notifications
+        await _updateUserCredentialsCache(user.uid, newUser.toJson());
+        
+        // Store user credentials securely
+        await _storage.write(key: 'email', value: email);
+        await _storage.write(key: 'uid', value: user.uid);
+        
         return newUser;
       }
       return null;
@@ -122,6 +189,10 @@ class AuthService {
             // Store user credentials securely
             await _storage.write(key: 'email', value: email);
             await _storage.write(key: 'uid', value: user.uid);
+            
+            // Cache user credentials for background notifications
+            await _updateUserCredentialsCache(user.uid, userData);
+            
             return UserModel.fromJson(userData);
           } else {
             print("Error: userData is null or not a map");
@@ -178,6 +249,11 @@ class AuthService {
     try {
       await _auth.signOut();
       await _storage.deleteAll(); // Clear all stored credentials
+      
+      // Don't clear the cache here - we want to keep it for background notifications
+      // after the user logs out
+      // If you want to clear it completely, uncomment the line below
+      // await _credentialsCacheService.clearCache();
     } catch (error) {
       print('Error signing out: $error');
       throw Exception('Failed to sign out.');

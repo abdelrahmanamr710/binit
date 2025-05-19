@@ -33,22 +33,39 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+}
 
-    dependencies {
-        // Firebase BoM for consistent versions
-        implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
-        // Firebase Auth
-        implementation("com.google.firebase:firebase-auth")
-        // Firebase Cloud Messaging
-        implementation("com.google.firebase:firebase-messaging")
-        // Firebase Realtime Database
-        implementation("com.google.firebase:firebase-database-ktx")
-        // Core library desugaring for Java 8+ APIs
-        coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-        // Local notifications plugin
-        implementation(project(":flutter_local_notifications"))
-        // Add other plugin dependencies below
-    }
+dependencies {
+    // Firebase BoM for consistent versions
+    implementation(platform("com.google.firebase:firebase-bom:33.12.0"))
+    
+    // Firebase Auth
+    implementation("com.google.firebase:firebase-auth-ktx")
+    
+    // Firebase Cloud Messaging
+    implementation("com.google.firebase:firebase-messaging-ktx")
+    
+    // Firebase Realtime Database
+    implementation("com.google.firebase:firebase-database-ktx")
+    
+    // Firebase Firestore (if needed)
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    
+    // Core library desugaring for Java 8+ APIs
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    
+    // AndroidX Core
+    implementation("androidx.core:core-ktx:1.12.0")
+    
+    // AndroidX AppCompat
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    
+    // Local notifications plugin
+    implementation(project(":flutter_local_notifications"))
+    
+    // Add other plugin dependencies below
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3")
 }
 
 flutter {
