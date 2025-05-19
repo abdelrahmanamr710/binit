@@ -4,6 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:binit/screens/recyclingCompany_orderDetails.dart';
 import 'package:binit/screens/recyclingCompany_profile.dart';
 import 'package:binit/screens/recyclingCompany_previousOrders.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:animations/animations.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 
 class RecyclingCompanyHomeScreen extends StatefulWidget {
   const RecyclingCompanyHomeScreen({super.key});
@@ -17,28 +22,31 @@ class _RecyclingCompanyHomeScreenState
     extends State<RecyclingCompanyHomeScreen> {
   int _selectedIndex = 1;
 
+  void _navigateWithFadeThrough(Widget page) {
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => FadeThroughTransition(
+          animation: animation,
+          secondaryAnimation: secondaryAnimation,
+          child: page,
+        ),
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+    );
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
     switch (index) {
       case 0:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const RecyclingCompanyOrdersScreen(),
-          ),
-        );
+        _navigateWithFadeThrough(const RecyclingCompanyOrdersScreen());
         break;
       case 1:
         break;
       case 2:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const RecyclingCompanyProfileScreen(),
-          ),
-        );
+        _navigateWithFadeThrough(const RecyclingCompanyProfileScreen());
         break;
     }
   }
@@ -57,14 +65,54 @@ class _RecyclingCompanyHomeScreenState
       future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
       builder: (context, userSnapshot) {
         if (userSnapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            appBar: AppBar(
+              backgroundColor: const Color(0xFF03342F),
+              elevation: 0,
+              automaticallyImplyLeading: false,
+              title: const SizedBox.shrink(),
+              systemOverlayStyle: const SystemUiOverlayStyle(
+                statusBarColor: Color(0xFF03342F),
+                statusBarIconBrightness: Brightness.light,
+              ),
+            ),
+            body: Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 200,
+                      height: 32,
+                      color: Colors.white,
+                      margin: const EdgeInsets.only(bottom: 24),
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: 3,
+                        itemBuilder: (context, i) => Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           );
         }
         if (userSnapshot.hasError ||
             !userSnapshot.hasData ||
             !userSnapshot.data!.exists) {
-          return const Scaffold(
+          return Scaffold(
+
             body: Center(child: Text('Failed to load user data')),
           );
         }
@@ -73,6 +121,17 @@ class _RecyclingCompanyHomeScreenState
         final userName = userData['name'] ?? userData['email'] ?? 'Company';
 
         return Scaffold(
+          appBar: AppBar(
+
+            backgroundColor: const Color(0xFF03342F),
+            elevation: 0,
+            automaticallyImplyLeading: false,
+            title: const SizedBox.shrink(),
+            systemOverlayStyle: const SystemUiOverlayStyle(
+              statusBarColor: Color(0xFF03342F),
+              statusBarIconBrightness: Brightness.light,
+            ),
+          ),
           backgroundColor: Colors.white,
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
@@ -153,7 +212,21 @@ class _RecyclingCompanyHomeScreenState
                           .snapshots(),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                          return Shimmer.fromColors(
+                            baseColor: Colors.grey[300]!,
+                            highlightColor: Colors.grey[100]!,
+                            child: ListView.builder(
+                              itemCount: 3,
+                              itemBuilder: (context, i) => Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                height: 100,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
+                          );
                         }
 
                         final offers = snapshot.data?.docs ?? [];
@@ -205,14 +278,16 @@ class _RecyclingCompanyHomeScreenState
                                         },
                                         child: const Text(
                                           "View Details",
-                                          style: TextStyle(color: Colors.white), // Changed text color to white
+                                          style: TextStyle(color: Colors.white),
                                         ),
                                       ),
                                     )
                                   ],
                                 ),
                               ),
-                            );
+                            ).animate()
+                              .fade(duration: 400.ms, delay: (index * 80).ms)
+                              .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: (index * 80).ms);
                           },
                         );
                       },

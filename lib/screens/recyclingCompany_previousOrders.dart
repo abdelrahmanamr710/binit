@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:binit/screens/recyclingCompany_homescreen.dart';
 import 'package:binit/screens/recyclingCompany_profile.dart';
 import 'package:binit/screens/recyclingCompany_orderDetails.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:animations/animations.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class RecyclingCompanyOrdersScreen extends StatefulWidget {
   const RecyclingCompanyOrdersScreen({super.key});
@@ -18,6 +21,19 @@ class _RecyclingCompanyOrdersScreenState
     extends State<RecyclingCompanyOrdersScreen> {
   int _selectedIndex = 0;
 
+  void _navigateWithFadeThrough(Widget page) {
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => FadeThroughTransition(
+          animation: animation,
+          secondaryAnimation: secondaryAnimation,
+          child: page,
+        ),
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+    );
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -26,20 +42,10 @@ class _RecyclingCompanyOrdersScreenState
       case 0:
         break;
       case 1:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const RecyclingCompanyHomeScreen(),
-          ),
-        );
+        _navigateWithFadeThrough(const RecyclingCompanyHomeScreen());
         break;
       case 2:
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const RecyclingCompanyProfileScreen(),
-          ),
-        );
+        _navigateWithFadeThrough(const RecyclingCompanyProfileScreen());
         break;
     }
   }
@@ -124,7 +130,21 @@ class _RecyclingCompanyOrdersScreenState
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return Shimmer.fromColors(
+                  baseColor: Colors.grey[300]!,
+                  highlightColor: Colors.grey[100]!,
+                  child: ListView.builder(
+                    itemCount: 3,
+                    itemBuilder: (context, i) => Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      height: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                );
               }
               if (snapshot.hasError) {
                 return Center(
@@ -205,7 +225,9 @@ class _RecyclingCompanyOrdersScreenState
                         ],
                       ),
                     ),
-                  );
+                  ).animate()
+                    .fade(duration: 400.ms, delay: (index * 80).ms)
+                    .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: (index * 80).ms);
                 },
               );
             },

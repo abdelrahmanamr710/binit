@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:binit/screens/recyclingCompany_homescreen.dart';
 import 'package:binit/screens/recyclingCompany_previousOrders.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:animations/animations.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class RecyclingCompanyProfileScreen extends StatelessWidget {
   const RecyclingCompanyProfileScreen({super.key});
@@ -69,7 +72,18 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
               future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Shimmer.fromColors(
+                    baseColor: Colors.grey[300]!,
+                    highlightColor: Colors.grey[100]!,
+                    child: Container(
+                      height: 300,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  );
                 }
 
                 if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
@@ -165,7 +179,9 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
                       ),
                     ),
                   ],
-                );
+                ).animate()
+                  .fade(duration: 400.ms)
+                  .slideY(begin: 0.1, end: 0, duration: 400.ms);
               },
             ),
           ],
@@ -193,12 +209,7 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
                       label: 'Previous Orders',
                       isSelected: false,
                       onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RecyclingCompanyOrdersScreen(),
-                          ),
-                        );
+                        _navigateWithFadeThrough(const RecyclingCompanyOrdersScreen(), context);
                       },
                     ),
                   ),
@@ -208,12 +219,7 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
                       label: 'Home',
                       isSelected: false,
                       onTap: () {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const RecyclingCompanyHomeScreen(),
-                          ),
-                        );
+                        _navigateWithFadeThrough(const RecyclingCompanyHomeScreen(), context);
                       },
                     ),
                   ),
@@ -230,6 +236,19 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _navigateWithFadeThrough(Widget page, BuildContext context) {
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => FadeThroughTransition(
+          animation: animation,
+          secondaryAnimation: secondaryAnimation,
+          child: page,
+        ),
+        transitionDuration: const Duration(milliseconds: 400),
       ),
     );
   }

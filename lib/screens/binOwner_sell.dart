@@ -10,6 +10,7 @@ import 'package:flutter/cupertino.dart'; // Import for CupertinoDatePicker if ne
 import 'package:binit/screens/binOwner_stock.dart';
 import 'package:binit/screens/binOwner_homescreen.dart';
 import 'package:binit/screens/binOwner_profile.dart';
+import 'package:animations/animations.dart';
 
 // Define a Cubit for managing the SellForm state
 class SellFormCubit extends Cubit<Map<String, dynamic>> {
@@ -115,6 +116,19 @@ class _UserSellFormState extends State<UserSellForm> {
     _cityController.dispose();
     _pickupAddressController.dispose();
     super.dispose();
+  }
+
+  void _navigateWithFadeThrough(Widget page) {
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => FadeThroughTransition(
+          animation: animation,
+          secondaryAnimation: secondaryAnimation,
+          child: page,
+        ),
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+    );
   }
 
   @override
@@ -348,16 +362,11 @@ class _UserSellFormState extends State<UserSellForm> {
               label: 'Stock',
               isSelected: false, // Set to true if this is the Stock page
               onTap: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => BinOwnerStockScreen(
-                      userName: widget.userName,
-                      user: widget.user,
-                      currentIndex: 0,
-                    ),
-                  ),
-                );
+                _navigateWithFadeThrough(BinOwnerStockScreen(
+                  userName: widget.userName,
+                  user: widget.user,
+                  currentIndex: 0,
+                ));
               },
             ),
             _buildNavBarItem(
@@ -365,12 +374,7 @@ class _UserSellFormState extends State<UserSellForm> {
               label: 'Home',
               isSelected: false, // Set to true if this is the Home page
               onTap: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (_) => BinOwnerHomeScreen(currentIndex: 1),
-                  ),
-                  (route) => false,
-                );
+                _navigateWithFadeThrough(BinOwnerHomeScreen(currentIndex: 1));
               },
             ),
             _buildNavBarItem(
@@ -379,12 +383,7 @@ class _UserSellFormState extends State<UserSellForm> {
               isSelected: false, // Set to true if this is the Profile page
               onTap: () {
                 if (widget.user != null) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BinOwnerProfile(user: widget.user!),
-                    ),
-                  );
+                  _navigateWithFadeThrough(BinOwnerProfile(user: widget.user!));
                 }
               },
             ),

@@ -8,6 +8,9 @@ import 'package:binit/services/notification_service.dart';
 import 'package:binit/services/fcm_service.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:async';
+import 'package:shimmer/shimmer.dart';
+import 'package:animations/animations.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class BinOwnerHomeScreen extends StatefulWidget {
   final int currentIndex;
@@ -308,7 +311,43 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Padding(
+              padding: const EdgeInsets.all(16),
+              child: Shimmer.fromColors(
+                baseColor: Colors.grey[300]!,
+                highlightColor: Colors.grey[100]!,
+                child: Column(
+                  children: List.generate(2, (i) =>
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 120,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Container(
+                              height: 120,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            )
           : Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -418,16 +457,11 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
               isSelected: widget.currentIndex == 0,
               onTap: () {
                 if (widget.currentIndex != 0) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BinOwnerStockScreen(
-                        userName: userName,
-                        user: user,
-                        currentIndex: 0,
-                      ),
-                    ),
-                  );
+                  _navigateWithFadeThrough(BinOwnerStockScreen(
+                    userName: userName,
+                    user: user,
+                    currentIndex: 0,
+                  ));
                 }
               },
             ),
@@ -437,12 +471,7 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
               isSelected: widget.currentIndex == 1,
               onTap: () {
                 if (widget.currentIndex != 1) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BinOwnerHomeScreen(currentIndex: 1),
-                    ),
-                  );
+                  _navigateWithFadeThrough(BinOwnerHomeScreen(currentIndex: 1));
                 }
               },
             ),
@@ -452,12 +481,7 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
               isSelected: widget.currentIndex == 2,
               onTap: () {
                 if (widget.currentIndex != 2 && user != null) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => BinOwnerProfile(user: user!),
-                    ),
-                  );
+                  _navigateWithFadeThrough(BinOwnerProfile(user: user!));
                 }
               },
             ),
@@ -518,7 +542,9 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
             }
           });
           return Column(
-            children: binList.map((bin) {
+            children: binList.asMap().entries.map((entry) {
+              final i = entry.key;
+              final bin = entry.value;
               // Determine order of sub-bins
               final isPlasticFirst = (_sortBy == 'Fullness: Ascendingly' && bin.plasticLevel <= bin.metalLevel) ||
                   (_sortBy == 'Fullness: Descendingly' && bin.plasticLevel > bin.metalLevel);
@@ -575,7 +601,9 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
                     ),
                   ],
                 ),
-              );
+              ).animate()
+                .fade(duration: 400.ms, delay: (i * 80).ms)
+                .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: (i * 80).ms);
             }).toList(),
           );
         },
@@ -604,6 +632,19 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
       ));
     }
     return result;
+  }
+
+  void _navigateWithFadeThrough(Widget page) {
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => FadeThroughTransition(
+          animation: animation,
+          secondaryAnimation: secondaryAnimation,
+          child: page,
+        ),
+        transitionDuration: const Duration(milliseconds: 400),
+      ),
+    );
   }
 }
 
