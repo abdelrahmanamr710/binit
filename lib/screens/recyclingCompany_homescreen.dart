@@ -22,6 +22,10 @@ class _RecyclingCompanyHomeScreenState
     extends State<RecyclingCompanyHomeScreen> {
   int _selectedIndex = 1;
 
+  // Track offers to be dismissed
+  Set<String> _dismissedOfferIds = {};
+  Set<String> _pendingDismissIds = {};
+
   void _navigateWithFadeThrough(Widget page) {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
@@ -234,60 +238,39 @@ class _RecyclingCompanyHomeScreenState
                           return const Center(child: Text("No pending sell offers."));
                         }
 
-                        return ListView.builder(
-                          itemCount: offers.length,
-                          itemBuilder: (context, index) {
-                            final doc = offers[index];
-                            final offer = doc.data() as Map<String, dynamic>;
-                            final offerId = doc.id;
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEFF5F4),
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text("${offer['kilograms']} KG", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                                        Text("EGP ${offer['price']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF03342F)))
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text("${offer['city']}, ${offer['district']}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                                    const SizedBox(height: 8),
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF03342F),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                        ),
-                                        onPressed: () {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (_) => SellOfferDetailsScreen(offerId: offerId),
-                                            ),
-                                          );
-                                        },
-                                        child: const Text(
-                                          "View Details",
-                                          style: TextStyle(color: Colors.white),
-                                        ),
-                                      ),
-                                    )
-                                  ],
-                                ),
-                              ),
-                            ).animate()
-                              .fade(duration: 400.ms, delay: (index * 80).ms)
-                              .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: (index * 80).ms);
+                        return StatefulBuilder(
+                          builder: (context, setStateSB) {
+                            return ListView.builder(
+                              itemCount: offers.length,
+                              itemBuilder: (context, index) {
+                                final doc = offers[index];
+                                final offer = doc.data() as Map<String, dynamic>;
+                                final offerId = doc.id;
+                                if (_dismissedOfferIds.contains(offerId)) {
+                                  return const SizedBox.shrink();
+                                }
+                                if (_pendingDismissIds.contains(offerId)) {
+                                  // Trigger dismiss after build
+                                  Future.delayed(Duration(milliseconds: 100), () {
+  setStateSB(() {
+    _dismissedOfferIds.add(offerId);
+    _pendingDismissIds.remove(offerId);
+  });
+});
+                                }
+                                return Dismissible(
+                                  key: Key(offerId + (_pendingDismissIds.contains(offerId) ? '_pending' : '')),
+                                  direction: DismissDirection.startToEnd,
+                                  onDismissed: (_) {
+                                    setStateSB(() {
+                                      _dismissedOfferIds.add(offerId);
+                                      _pendingDismissIds.remove(offerId);
+                                    });
+                                  },
+                                  child: _buildOfferCard(offer, offerId, context, setStateSB),
+                                );
+                              },
+                            );
                           },
                         );
                       },
@@ -330,5 +313,62 @@ class _RecyclingCompanyHomeScreenState
         ),
       ),
     );
+  }
+
+  // Helper to build the offer card
+  Widget _buildOfferCard(Map<String, dynamic> offer, String offerId, BuildContext context, void Function(void Function()) setStateSB) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF5F4),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("${offer['kilograms']} KG", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text("EGP ${offer['price']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF03342F)))
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text("${offer['city']}, ${offer['district']}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF03342F),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                onPressed: () async {
+                  final dismissedOfferId = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SellOfferDetailsScreen(offerId: offerId),
+                    ),
+                  );
+                  if (dismissedOfferId != null && dismissedOfferId == offerId) {
+                    setStateSB(() {
+                      _pendingDismissIds.add(offerId);
+                    });
+                  }
+                },
+                child: const Text(
+                  "View Details",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            )
+          ],
+        ),
+      ),
+    ).animate()
+      .fade(duration: 400.ms, delay: 0.ms)
+      .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: 0.ms);
   }
 }

@@ -194,210 +194,210 @@ class _UserSellFormState extends State<UserSellForm> {
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(12.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
                     // Material is now set automatically; dropdown removed
-                    const Text(
-                      'Set Weight to be Sold:',
+              const Text(
+                'Set Weight to be Sold:',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                         const Text('0kg', style: TextStyle(fontSize: 14.0)),
                         Text('Max: ${_maxStock.toStringAsFixed(1)}kg',
                             style: const TextStyle(fontSize: 10.0, color: Colors.grey)),
-                      ],
-                    ),
-                    Slider(
+                ],
+              ),
+              Slider(
                       value: (cubit.state['kilograms'] ?? 0.0).clamp(0.0, _maxStock),
-                      min: 0,
+                min: 0,
                       max: _maxStock > 0 ? _maxStock : 1,
                       divisions: _maxStock > 0 ? _maxStock.round() : 1,
-                      label: '${(cubit.state['kilograms'] ?? 0.0).round()}kg',
-                      activeColor: const Color(0xFF26A69A),
-                      inactiveColor: Colors.grey[300],
+                label: '${(cubit.state['kilograms'] ?? 0.0).round()}kg',
+                activeColor: const Color(0xFF26A69A),
+                inactiveColor: Colors.grey[300],
                       onChanged: _maxStock > 0
                           ? (double newWeight) {
-                              cubit.updateField('kilograms', newWeight);
+                  cubit.updateField('kilograms', newWeight);
                             }
                           : null,
-                    ),
-                    Center(
-                      child: Container(
+              ),
+              Center(
+                child: Container(
                         padding: const EdgeInsets.all(6.0),
-                        decoration: BoxDecoration(
+                  decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(6.0),
-                          color: Colors.grey[200],
-                        ),
-                        child: Text(
-                            '${(cubit.state['kilograms'] ?? 0.0).round()}kg',
+                    color: Colors.grey[200],
+                  ),
+                  child: Text(
+                      '${(cubit.state['kilograms'] ?? 0.0).round()}kg',
                             style: const TextStyle(fontSize: 16.0)),
-                      ),
-                    ),
-                    const SizedBox(height: 16.0),
-                    const Text(
-                      'Set Price/Kg:',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('\$0', style: TextStyle(fontSize: 14.0)),
-                        const Text('\$1000',
-                            style: TextStyle(fontSize: 10.0, color: Colors.grey)),
-                      ],
-                    ),
-                    Slider(
-                      value: cubit.state['price'] ?? 0.0,
-                      min: 0,
-                      max: 1000,
-                      divisions: 1000,
-                      label: '\$${(cubit.state['price'] ?? 0.0).round()}',
-                      activeColor: const Color(0xFF26A69A),
-                      inactiveColor: Colors.grey[300],
-                      onChanged: (double newPrice) {
-                        cubit.updateField('price', newPrice);
-                      },
-                    ),
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(6.0),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(6.0),
-                          color: Colors.grey[200],
-                        ),
-                        child: Text('\$${(cubit.state['price'] ?? 0.0).round()}',
-                            style: const TextStyle(fontSize: 16.0)),
-                      ),
-                    ),
-                    const SizedBox(height: 8.0),
-                    const Text(
-                      '*Recommended Price is between \$500 and \$800 per Kg for best deals.',
-                      style: TextStyle(fontSize: 10.0, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16.0),
-                    TextFormField(
-                      readOnly: true,
-                      onTap: () => _selectDate(context),
-                      decoration: InputDecoration(
-                        labelText: 'Pick a Date For Pickup',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                        suffixIcon: const Icon(Icons.calendar_today_outlined),
-                      ),
-                      controller: TextEditingController(
-                        text: cubit.state['pickupDate'] != null
-                            ? DateFormat('yyyy-MM-dd').format(cubit.state['pickupDate'])
-                            : DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                      ),
-                    ),
-                    const SizedBox(height: 12.0),
-                    TextFormField(
-                      controller: _phoneNumberController,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        labelText: 'Phone Number',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your phone number';
-                        }
-                        return null;
-                      },
-                      onChanged: (value) => cubit.updateField('phoneNumber', value),
-                    ),
-                    const SizedBox(height: 12.0),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _districtController,
-                            decoration: InputDecoration(
-                              labelText: 'District',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your district';
-                              }
-                              return null;
-                            },
-                            onChanged: (value) => cubit.updateField('district', value),
-                          ),
-                        ),
-                        const SizedBox(width: 12.0),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _cityController,
-                            decoration: InputDecoration(
-                              labelText: 'City',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your city';
-                              }
-                              return null;
-                            },
-                            onChanged: (value) => cubit.updateField('city', value),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12.0),
-                    TextFormField(
-                      controller: _pickupAddressController,
-                      maxLines: 2,
-                      decoration: InputDecoration(
-                        labelText: 'Pickup Address',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your pickup address';
-                        }
-                        return null;
-                      },
-                      onChanged: (value) =>
-                          cubit.updateField('pickupAddress', value),
-                    ),
-                    const SizedBox(height: 24.0),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          if (_formKey.currentState!.validate()) {
-                            try {
-                              await cubit.submitForm(context);
-                            } catch (error) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed to submit offer: $error'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF26A69A),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                          ),
-                        ),
-                        child: const Text('Sell', style: TextStyle(fontSize: 16.0)),
-                      ),
-                    ),
-                  ],
                 ),
               ),
-            ),
+                    const SizedBox(height: 16.0),
+              const Text(
+                'Set Price/Kg:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                        const Text('\$0', style: TextStyle(fontSize: 14.0)),
+                  const Text('\$1000',
+                            style: TextStyle(fontSize: 10.0, color: Colors.grey)),
+                ],
+              ),
+              Slider(
+                value: cubit.state['price'] ?? 0.0,
+                min: 0,
+                max: 1000,
+                divisions: 1000,
+                label: '\$${(cubit.state['price'] ?? 0.0).round()}',
+                activeColor: const Color(0xFF26A69A),
+                inactiveColor: Colors.grey[300],
+                onChanged: (double newPrice) {
+                  cubit.updateField('price', newPrice);
+                },
+              ),
+              Center(
+                child: Container(
+                        padding: const EdgeInsets.all(6.0),
+                  decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6.0),
+                    color: Colors.grey[200],
+                  ),
+                  child: Text('\$${(cubit.state['price'] ?? 0.0).round()}',
+                            style: const TextStyle(fontSize: 16.0)),
+                ),
+              ),
+                    const SizedBox(height: 8.0),
+              const Text(
+                '*Recommended Price is between \$500 and \$800 per Kg for best deals.',
+                      style: TextStyle(fontSize: 10.0, color: Colors.grey),
+              ),
+                    const SizedBox(height: 16.0),
+              TextFormField(
+                readOnly: true,
+                onTap: () => _selectDate(context),
+                decoration: InputDecoration(
+                  labelText: 'Pick a Date For Pickup',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                  suffixIcon: const Icon(Icons.calendar_today_outlined),
+                ),
+                controller: TextEditingController(
+                  text: cubit.state['pickupDate'] != null
+                      ? DateFormat('yyyy-MM-dd').format(cubit.state['pickupDate'])
+                      : DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                ),
+              ),
+                    const SizedBox(height: 12.0),
+              TextFormField(
+                controller: _phoneNumberController,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: 'Phone Number',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your phone number';
+                  }
+                  return null;
+                },
+                onChanged: (value) => cubit.updateField('phoneNumber', value),
+              ),
+                    const SizedBox(height: 12.0),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _districtController,
+                      decoration: InputDecoration(
+                        labelText: 'District',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your district';
+                        }
+                        return null;
+                      },
+                      onChanged: (value) => cubit.updateField('district', value),
+                    ),
+                  ),
+                        const SizedBox(width: 12.0),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _cityController,
+                      decoration: InputDecoration(
+                        labelText: 'City',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your city';
+                        }
+                        return null;
+                      },
+                      onChanged: (value) => cubit.updateField('city', value),
+                    ),
+                  ),
+                ],
+              ),
+                    const SizedBox(height: 12.0),
+              TextFormField(
+                controller: _pickupAddressController,
+                maxLines: 2,
+                decoration: InputDecoration(
+                  labelText: 'Pickup Address',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter your pickup address';
+                  }
+                  return null;
+                },
+                onChanged: (value) =>
+                    cubit.updateField('pickupAddress', value),
+              ),
+                    const SizedBox(height: 24.0),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (_formKey.currentState!.validate()) {
+                      try {
+                        await cubit.submitForm(context);
+                      } catch (error) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to submit offer: $error'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF26A69A),
+                    foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                    ),
+                  ),
+                        child: const Text('Sell', style: TextStyle(fontSize: 16.0)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       bottomNavigationBar: Container(
         margin: const EdgeInsets.all(10),
         padding: const EdgeInsets.symmetric(vertical: 8),

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:binit/screens/recyclingCompany_homescreen.dart';
 
 class Waiting extends StatefulWidget {
-  const Waiting({super.key});
+  final String? offerId;
+  const Waiting({super.key, this.offerId});
   @override
   WaitingState createState() => WaitingState();
 }
@@ -53,13 +54,12 @@ class WaitingState extends State<Waiting> {
                         ),
                         InkWell(
                           onTap: () {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const RecyclingCompanyHomeScreen(),
-                              ),
-                                  (route) => false,
-                            );
+                            // Explicitly pass back the offerId to trigger the slide-out animation
+                            if (widget.offerId != null) {
+                              Navigator.pop(context, widget.offerId);
+                            } else {
+                              Navigator.pop(context);
+                            }
                           },
                           child: IntrinsicHeight(
                             child: Container(

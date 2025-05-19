@@ -125,12 +125,15 @@ class SellOfferDetailsScreen extends StatelessWidget {
                               'status': 'accepted',
                               'companyId': currentUser?.uid,
                             });
-                            Navigator.pushReplacement(
+                            // Navigate to waiting screen and wait for result
+                            final dismissedOfferId = await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const Waiting(),
+                                builder: (_) => Waiting(offerId: offerId),
                               ),
                             );
+                            // Pass the offerId back to trigger the slide animation
+                            Navigator.pop(context, offerId);
                           },
                           child: const Text(
                             'Accept Offer',
