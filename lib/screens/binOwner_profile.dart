@@ -86,12 +86,7 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A524F), // Dark green background
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+        automaticallyImplyLeading: false,
         title: const Text('Profile', style: TextStyle(color: Colors.white)),
         centerTitle: true,
         actions: [
@@ -272,59 +267,54 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
         ),
       ),
       bottomNavigationBar: Container(
+        margin: const EdgeInsets.all(10),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A524F), // Background color of the nav bar
-          borderRadius: BorderRadius.circular(20), // Rounded corners
+          color: const Color(0xFF1A524F),
+          borderRadius: BorderRadius.circular(20),
         ),
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), // Add some margin
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 5.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavBarItem(
-                icon: Icons.dashboard_rounded,
-                label: 'Stock',
-                isSelected: _currentIndex == 0,
-                onTap: () {
-                  setState(() {
-                    _currentIndex = 0;
-                  });
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (context) => BinOwnerStockScreen(userName: widget.user.name ?? '', user: widget.user, currentIndex: 0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavBarItem(
+              icon: Icons.dashboard,
+              label: 'Stock',
+              isSelected: _currentIndex == 0,
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BinOwnerStockScreen(
+                      userName: widget.user.name ?? '',
+                      user: widget.user,
+                      currentIndex: 0,
                     ),
-                  );
-                },
-              ),
-              _buildNavBarItem(
-                icon: Icons.home_filled,
-                label: 'Home',
-                isSelected: _currentIndex == 1,
-                onTap: () {
-                  setState(() {
-                    _currentIndex = 1;
-                  });
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (context) => BinOwnerHomeScreen(currentIndex: 1),
-                    ),
-                  );
-                },
-              ),
-              _buildNavBarItem(
-                icon: Icons.person_rounded,
-                label: 'Profile',
-                isSelected: _currentIndex == 2,
-                onTap: () {
-                  setState(() {
-                    _currentIndex = 2;
-                  });
-                  // Do nothing, remain on the same page
-                },
-              ),
-            ],
-          ),
+                  ),
+                );
+              },
+            ),
+            _buildNavBarItem(
+              icon: Icons.home,
+              label: 'Home',
+              isSelected: _currentIndex == 1,
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BinOwnerHomeScreen(currentIndex: 1),
+                  ),
+                );
+              },
+            ),
+            _buildNavBarItem(
+              icon: Icons.person,
+              label: 'Profile',
+              isSelected: _currentIndex == 2,
+              onTap: () {
+                // No need to navigate if already on Profile screen
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -336,24 +326,16 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    final Color color = isSelected ? Colors.white : Colors.grey[300]!;
-
-    return InkWell(
+    final color = isSelected ? Colors.white : Colors.white70;
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(color: color, fontSize: 12),
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: color)),
+        ],
       ),
     );
   }

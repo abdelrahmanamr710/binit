@@ -143,16 +143,30 @@ class FCMService {
     final levelRef = _database.ref().child('BIN').child(binId).child(material).child('level');
     print("Setting up FCM listener for path: BIN/$binId/$material/level");
     
-    levelRef.onValue.listen((event) {
+    levelRef.onValue.listen((event) async {
       if (event.snapshot.exists) {
         final level = event.snapshot.value?.toString();
         print("FCM received level update for $binId-$material: $level");
         
-        _notificationService.showBinLevelUpdate(
-          binName: 'Bin $binId',
-          material: material[0].toUpperCase() + material.substring(1),
-          level: level ?? '0%',
-        );
+        if (level != null) {
+          // Create a unique notification ID
+          final notificationId = 'bin_${binId}_${material.toLowerCase()}_${level.replaceAll('%', '')}';
+          
+          // Check if this notification was already sent
+          final wasSent = await _notificationService.wasNotificationSent(notificationId);
+          
+          if (!wasSent) {
+            await _notificationService.showBinLevelUpdate(
+              binName: 'Bin $binId',
+              material: material[0].toUpperCase() + material.substring(1),
+              level: level,
+              binId: binId,
+            );
+            
+            // Mark this notification as sent
+            await _notificationService.markNotificationAsSent(notificationId);
+          }
+        }
       }
     });
   }

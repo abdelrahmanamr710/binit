@@ -260,27 +260,57 @@ class DatabaseListenerService : Service() {
     }
 
     private fun showBinLevelNotification(binId: String, material: String, level: String) {
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val sharedPrefs = getSharedPreferences(SHARED_PREFS_NAME, Context.MODE_PRIVATE)
         
-        val intent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        // Create a unique notification ID
+        val notificationId = "bin_${binId}_${material.toLowerCase()}_${level.replace("%", "")}"
+        
+        // Get the list of sent notifications
+        val sentNotifications = sharedPrefs.getStringSet("flutter.sent_notifications", setOf()) ?: setOf()
+        
+        // Check if this notification was already sent
+        if (sentNotifications.contains(notificationId)) {
+            Log.d(TAG, "Notification already sent: $notificationId")
+            return
         }
         
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        // Check if we're within the cooldown period
+        val lastNotificationTime = sharedPrefs.getLong("flutter.last_notification_time", 0)
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastNotificationTime < 5000) { // 5 seconds cooldown
+            Log.d(TAG, "Notification skipped: Within cooldown period")
+            return
+        }
+        
+        // Create notification data
+        val notificationData = mapOf(
+            "type" to "bin_level_update",
+            "binName" to "Bin $binId",
+            "material" to material,
+            "level" to level,
+            "binId" to binId
         )
-
-        val notification = NotificationCompat.Builder(this, "high_importance_channel")
-            .setContentTitle("Bin Level Update")
-            .setContentText("Bin $binId $material is now $level full.")
-            .setSmallIcon(android.R.drawable.ic_notification_overlay)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(pendingIntent)
-            .setAutoCancel(true)
-            .build()
-
-        notificationManager.notify("bin-$binId-$material".hashCode(), notification)
+        
+        // Send notification through Flutter's notification service
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("notification_type", "bin_level_update")
+            putExtra("notification_data", JSONObject(notificationData).toString())
+        }
+        startActivity(intent)
+        
+        // Mark this notification as sent
+        val updatedSentNotifications = sentNotifications.toMutableSet()
+        updatedSentNotifications.add(notificationId)
+        if (updatedSentNotifications.size > 100) {
+            // Keep only the last 100 notifications
+            val toRemove = updatedSentNotifications.size - 100
+            updatedSentNotifications.take(toRemove).forEach { updatedSentNotifications.remove(it) }
+        }
+        sharedPrefs.edit()
+            .putStringSet("flutter.sent_notifications", updatedSentNotifications)
+            .putLong("flutter.last_notification_time", currentTime)
+            .apply()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

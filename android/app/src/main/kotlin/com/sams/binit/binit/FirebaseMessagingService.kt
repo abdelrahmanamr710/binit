@@ -115,74 +115,33 @@ class BinitFirebaseMessagingService : FirebaseMessagingService() {
     private fun handleDataMessage(data: Map<String, String>) {
         val messageType = data["type"] ?: "unknown"
         
-        when (messageType) {
-            "bin_level_update" -> {
-                val binName = data["binName"] ?: "Unknown"
-                val material = data["material"] ?: "Unknown"
-                val level = data["level"] ?: "0%"
-                
-                showNotification(
-                    "Bin Level Update",
-                    "Your $material bin ($binName) is now $level full."
-                )
-            }
-            "offer_accepted" -> {
-                val company = data["company"] ?: "Unknown"
-                val kilos = data["kilos"] ?: "0"
-                
-                showNotification(
-                    "Offer Accepted",
-                    "$company accepted your $kilos kg offer."
-                )
-            }
-            else -> {
-                showNotification(
-                    "Bin-It Notification",
-                    "You have a new notification"
-                )
-            }
+        // Create notification data
+        val notificationData = data.toMutableMap()
+        
+        // Send notification through Flutter's notification service
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("notification_type", messageType)
+            putExtra("notification_data", JSONObject(notificationData).toString())
         }
+        startActivity(intent)
     }
 
     private fun showNotification(title: String, messageBody: String) {
-        val intent = packageManager.getLaunchIntentForPackage(packageName)
-        intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        // Create notification data
+        val notificationData = mapOf(
+            "type" to "generic",
+            "title" to title,
+            "body" to messageBody
         )
-
-        val channelId = "high_importance_channel"
-        val defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-        val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(android.R.drawable.ic_notification_overlay)
-            .setContentTitle(title)
-            .setContentText(messageBody)
-            .setAutoCancel(true)
-            .setSound(defaultSoundUri)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(pendingIntent)
-
-        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        // Create notification channel for Android O and above
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "High Importance Notifications",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Channel for Bin-It high importance notifications"
-                enableLights(true)
-                enableVibration(true)
-            }
-            notificationManager.createNotificationChannel(channel)
+        
+        // Send notification through Flutter's notification service
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("notification_type", "generic")
+            putExtra("notification_data", JSONObject(notificationData).toString())
         }
-
-        // Show the notification
-        val notificationId = System.currentTimeMillis().toInt()
-        notificationManager.notify(notificationId, notificationBuilder.build())
+        startActivity(intent)
     }
 
     override fun onNewToken(token: String) {

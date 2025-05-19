@@ -80,16 +80,28 @@ class FirebaseBackgroundService {
         .child('plastic')
         .child('level');
     
-    final plasticListener = plasticRef.onValue.listen((event) {
+    final plasticListener = plasticRef.onValue.listen((event) async {
       if (event.snapshot.exists) {
         final level = event.snapshot.value?.toString() ?? "0";
         print("Plastic level update for bin $binId: $level");
         
-        NotificationService().showBinLevelUpdate(
-          binName: 'Bin $binId',
-          material: 'Plastic',
-          level: level,
-        );
+        // Create a unique notification ID
+        final notificationId = 'bin_${binId}_plastic_${level.replaceAll('%', '')}';
+        
+        // Check if this notification was already sent
+        final wasSent = await NotificationService().wasNotificationSent(notificationId);
+        
+        if (!wasSent) {
+          await NotificationService().showBinLevelUpdate(
+            binName: 'Bin $binId',
+            material: 'Plastic',
+            level: level,
+            binId: binId,
+          );
+          
+          // Mark this notification as sent
+          await NotificationService().markNotificationAsSent(notificationId);
+        }
       }
     });
     
@@ -103,16 +115,28 @@ class FirebaseBackgroundService {
         .child('metal')
         .child('level');
     
-    final metalListener = metalRef.onValue.listen((event) {
+    final metalListener = metalRef.onValue.listen((event) async {
       if (event.snapshot.exists) {
         final level = event.snapshot.value?.toString() ?? "0";
         print("Metal level update for bin $binId: $level");
         
-        NotificationService().showBinLevelUpdate(
-          binName: 'Bin $binId',
-          material: 'Metal',
-          level: level,
-        );
+        // Create a unique notification ID
+        final notificationId = 'bin_${binId}_metal_${level.replaceAll('%', '')}';
+        
+        // Check if this notification was already sent
+        final wasSent = await NotificationService().wasNotificationSent(notificationId);
+        
+        if (!wasSent) {
+          await NotificationService().showBinLevelUpdate(
+            binName: 'Bin $binId',
+            material: 'Metal',
+            level: level,
+            binId: binId,
+          );
+          
+          // Mark this notification as sent
+          await NotificationService().markNotificationAsSent(notificationId);
+        }
       }
     });
     

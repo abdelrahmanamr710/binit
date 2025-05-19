@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import org.json.JSONObject
 
 class MyFirebaseMessagingService : FirebaseMessagingService() {
     private val TAG = "FirebaseMsgService"
@@ -23,16 +24,24 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         // Get message data
         val data = remoteMessage.data
         val title = remoteMessage.notification?.title ?: "Binit Notification"
-        val body = when(data["type"]) {
-            "offer_accepted" -> "${data["companyName"]} accepted your ${data["kilos"]}kg offer."
-            "bin_level_update" -> "${data["binName"]} ${data["material"]} bin is now ${data["level"]} full."
-            else -> remoteMessage.notification?.body ?: "You have a new notification"
-        }
+        val body = remoteMessage.notification?.body ?: "You have a new notification"
+        val type = data["type"] ?: "generic"
 
         Log.d(TAG, "Received message: $title - $body")
         
-        // Create notification
-        showNotification(title, body)
+        // Create notification data
+        val notificationData = data.toMutableMap().apply {
+            put("title", title)
+            put("body", body)
+        }
+        
+        // Send notification through Flutter's notification service
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("notification_type", type)
+            putExtra("notification_data", JSONObject(notificationData).toString())
+        }
+        startActivity(intent)
     }
 
     private fun createNotificationChannel() {

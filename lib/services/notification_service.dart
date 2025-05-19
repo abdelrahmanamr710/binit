@@ -22,9 +22,17 @@ class NotificationService {
   static const String _sentNotificationsKey = 'sent_notifications';
   static const String _userTypeKey = 'user_type_cache';
   static const String _allowBackgroundNotificationsKey = 'allow_background_notifications';
+  static const String _lastNotificationTimeKey = 'last_notification_time';
+  static const int _notificationCooldownMs = 5000; // 5 seconds cooldown
 
   // User credentials cache service
   final _userCredentialsCacheService = UserCredentialsCacheService();
+
+  // Constants for notification channels
+  static const String _binLevelChannelId = 'binit_level_channel';
+  static const String _offerChannelId = 'binit_channel';
+  static const String _highImportanceChannelId = 'high_importance_channel';
+  static const String _databaseServiceChannelId = 'database_service_channel';
 
   Future<void> init() async {
     print("NotificationService: Initializing");
@@ -117,7 +125,6 @@ class NotificationService {
   
   // Create optimized notification channels
   Future<void> _createNotificationChannels() async {
-    // For Android 8.0+
     final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     if (androidPlugin != null) {
@@ -130,20 +137,10 @@ class NotificationService {
         await androidPlugin.requestNotificationsPermission();
       }
       
+      // Create bin level channel
       await androidPlugin.createNotificationChannel(
         const AndroidNotificationChannel(
-          'binit_channel',
-          'Binit Notifications',
-          description: 'Updates on your sell offers',
-          importance: Importance.max,
-          enableVibration: true,
-          playSound: true,
-        ),
-      );
-      
-      await androidPlugin.createNotificationChannel(
-        const AndroidNotificationChannel(
-          'binit_level_channel',
+          _binLevelChannelId,
           'Bin Level Updates',
           description: 'Real-time updates on your bin levels',
           importance: Importance.high,
@@ -152,14 +149,39 @@ class NotificationService {
         ),
       );
       
+      // Create offer channel
       await androidPlugin.createNotificationChannel(
         const AndroidNotificationChannel(
-          'high_importance_channel',
+          _offerChannelId,
+          'Binit Notifications',
+          description: 'Updates on your sell offers',
+          importance: Importance.max,
+          enableVibration: true,
+          playSound: true,
+        ),
+      );
+      
+      // Create high importance channel
+      await androidPlugin.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _highImportanceChannelId,
           'High Importance Notifications',
           description: 'Critical notifications that should always be shown',
           importance: Importance.high,
           enableVibration: true,
           playSound: true,
+        ),
+      );
+      
+      // Create database service channel
+      await androidPlugin.createNotificationChannel(
+        const AndroidNotificationChannel(
+          _databaseServiceChannelId,
+          'Database Service Channel',
+          description: 'Channel for database monitoring service',
+          importance: Importance.low,
+          enableVibration: false,
+          playSound: false,
         ),
       );
     }
@@ -195,13 +217,28 @@ class NotificationService {
   }
 
   // Check if notification was already sent
-  Future<bool> _wasNotificationSent(String notificationId) async {
+  Future<bool> wasNotificationSent(String notificationId) async {
     final sentNotifications = _prefs.getStringList(_sentNotificationsKey) ?? [];
-    return sentNotifications.contains(notificationId);
+    final lastNotificationTime = _prefs.getInt(_lastNotificationTimeKey) ?? 0;
+    final currentTime = DateTime.now().millisecondsSinceEpoch;
+    
+    // Check if we're within the cooldown period
+    if (currentTime - lastNotificationTime < _notificationCooldownMs) {
+      print("Notification skipped: Within cooldown period");
+      return true;
+    }
+    
+    // Check if this exact notification was sent
+    if (sentNotifications.contains(notificationId)) {
+      print("Notification skipped: Already sent");
+      return true;
+    }
+    
+    return false;
   }
 
   // Mark notification as sent
-  Future<void> _markNotificationAsSent(String notificationId) async {
+  Future<void> markNotificationAsSent(String notificationId) async {
     final sentNotifications = _prefs.getStringList(_sentNotificationsKey) ?? [];
     if (!sentNotifications.contains(notificationId)) {
       sentNotifications.add(notificationId);
@@ -210,6 +247,7 @@ class NotificationService {
         sentNotifications.removeRange(0, 50);
       }
       await _prefs.setStringList(_sentNotificationsKey, sentNotifications);
+      await _prefs.setInt(_lastNotificationTimeKey, DateTime.now().millisecondsSinceEpoch);
     }
   }
 
@@ -333,11 +371,11 @@ class NotificationService {
     }
     
     final notificationId = '${company}_${kilos}_offer';
-    if (await _wasNotificationSent(notificationId)) return;
+    if (await wasNotificationSent(notificationId)) return;
     
     // Enhanced Android notification details
     const androidDetails = AndroidNotificationDetails(
-      'binit_channel', 'Binit Notifications',
+      _offerChannelId, 'Binit Notifications',
       channelDescription: 'Updates on your sell offers',
       importance: Importance.max,
       priority: Priority.high,
@@ -368,7 +406,7 @@ class NotificationService {
     );
     
     // Store notification in sent list
-    await _markNotificationAsSent(notificationId);
+    await markNotificationAsSent(notificationId);
   }
 
   Future<void> showBinLevelUpdate({
@@ -402,14 +440,14 @@ class NotificationService {
     }
     
     final notificationId = '${binName}_${material}_${level}_${DateTime.now().millisecondsSinceEpoch}';
-    if (await _wasNotificationSent(notificationId)) {
+    if (await wasNotificationSent(notificationId)) {
       print("Not showing notification: Already sent recently");
       return;
     }
 
     // Enhanced Android notification details
     final androidDetails = AndroidNotificationDetails(
-      'binit_level_channel',
+      _binLevelChannelId,
       'Bin Level Updates',
       channelDescription: 'Real-time updates on your bin levels',
       importance: Importance.high,
@@ -463,7 +501,7 @@ class NotificationService {
     );
     
     // Store notification in sent list
-    await _markNotificationAsSent(notificationId);
+    await markNotificationAsSent(notificationId);
   }
 
   // Store notification in Firestore for tracking
@@ -549,6 +587,77 @@ class NotificationService {
   // Cancel all notifications
   Future<void> cancelAllNotifications() async {
     await _plugin.cancelAll();
+  }
+
+  // Method to handle notifications from native Android
+  Future<void> handleNativeNotification({
+    required String title,
+    required String body,
+    required String type,
+    Map<String, dynamic>? data,
+  }) async {
+    // Check if this is a background notification
+    bool isBackground = FirebaseAuth.instance.currentUser == null;
+    
+    // Only show notifications to binOwners
+    if (!isBackground && !await _isCurrentUserBinOwner()) {
+      print("Not showing notification: User is not a bin owner");
+      return;
+    }
+    
+    // If in background, check cached credentials
+    if (isBackground && !await _userCredentialsCacheService.isCachedUserBinOwner()) {
+      print("Not showing background notification: Cached user is not a bin owner");
+      return;
+    }
+
+    switch (type) {
+      case 'bin_level_update':
+        if (data != null) {
+          await showBinLevelUpdate(
+            binName: data['binName'] ?? 'Unknown',
+            material: data['material'] ?? 'Unknown',
+            level: data['level'] ?? '0',
+            binId: data['binId'],
+          );
+        }
+        break;
+      case 'offer_accepted':
+        if (data != null) {
+          await showOfferAccepted(
+            company: data['company'] ?? 'Unknown',
+            kilos: num.tryParse(data['kilos']?.toString() ?? '0') ?? 0,
+          );
+        }
+        break;
+      default:
+        // Show generic notification
+        await _showGenericNotification(title, body);
+    }
+  }
+
+  // Method to show generic notifications
+  Future<void> _showGenericNotification(String title, String body) async {
+    const androidDetails = AndroidNotificationDetails(
+      _highImportanceChannelId,
+      'High Importance Notifications',
+      channelDescription: 'Channel for high importance notifications',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+    
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    await _plugin.show(
+      title.hashCode ^ body.hashCode,
+      title,
+      body,
+      const NotificationDetails(android: androidDetails, iOS: iosDetails),
+    );
   }
 }
 

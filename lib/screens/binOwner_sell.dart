@@ -7,6 +7,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:binit/screens/sell_requested.dart';
 import 'package:binit/models/user_model.dart'; // Import UserModel
 import 'package:flutter/cupertino.dart'; // Import for CupertinoDatePicker if needed
+import 'package:binit/screens/binOwner_stock.dart';
+import 'package:binit/screens/binOwner_homescreen.dart';
+import 'package:binit/screens/binOwner_profile.dart';
 
 // Define a Cubit for managing the SellForm state
 class SellFormCubit extends Cubit<Map<String, dynamic>> {
@@ -331,45 +334,61 @@ class _UserSellFormState extends State<UserSellForm> {
         ),
       ),
       bottomNavigationBar: Container(
+        margin: const EdgeInsets.all(10),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: const Color(0xFF1A524F),
-          borderRadius: BorderRadius.circular(16), // Reduced radius
+          borderRadius: BorderRadius.circular(20),
         ),
-        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8), // Reduced margin
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0), // Reduced padding
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              _buildNavBarItem(
-                icon: Icons.dashboard_rounded,
-                label: 'Stock',
-                isSelected: false, // Adjust based on current screen
-                onTap: () {
-                  // TODO: Implement navigation to Stock screen
-                  print('Navigate to Stock');
-                },
-              ),
-              _buildNavBarItem(
-                icon: Icons.home_filled,
-                label: 'Home',
-                isSelected: false, // Adjust based on current screen
-                onTap: () {
-                  // TODO: Implement navigation to Home screen
-                  print('Navigate to Home');
-                },
-              ),
-              _buildNavBarItem(
-                icon: Icons.person_rounded,
-                label: 'Profile',
-                isSelected: false, // Adjust based on current screen
-                onTap: () {
-                  // TODO: Implement navigation to Profile screen
-                  print('Navigate to Profile');
-                },
-              ),
-            ],
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavBarItem(
+              icon: Icons.dashboard,
+              label: 'Stock',
+              isSelected: false, // Set to true if this is the Stock page
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BinOwnerStockScreen(
+                      userName: widget.userName,
+                      user: widget.user,
+                      currentIndex: 0,
+                    ),
+                  ),
+                );
+              },
+            ),
+            _buildNavBarItem(
+              icon: Icons.home,
+              label: 'Home',
+              isSelected: false, // Set to true if this is the Home page
+              onTap: () {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (_) => BinOwnerHomeScreen(currentIndex: 1),
+                  ),
+                  (route) => false,
+                );
+              },
+            ),
+            _buildNavBarItem(
+              icon: Icons.person,
+              label: 'Profile',
+              isSelected: false, // Set to true if this is the Profile page
+              onTap: () {
+                if (widget.user != null) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => BinOwnerProfile(user: widget.user!),
+                    ),
+                  );
+                }
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -381,24 +400,16 @@ class _UserSellFormState extends State<UserSellForm> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    final Color color = isSelected ? Colors.white : Colors.grey[300]!;
-
-    return InkWell(
+    final color = isSelected ? Colors.white : Colors.white70;
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), // Reduced padding
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(height: 1),
-            Text(
-              label,
-              style: TextStyle(color: color, fontSize: 10), // Reduced font size
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: color)),
+        ],
       ),
     );
   }

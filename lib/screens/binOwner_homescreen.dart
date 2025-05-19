@@ -17,6 +17,22 @@ class BinOwnerHomeScreen extends StatefulWidget {
   _BinOwnerHomeScreenState createState() => _BinOwnerHomeScreenState();
 }
 
+// Helper class for bin refs
+class _BinWithLevels {
+  final String binId;
+  final DatabaseReference plasticRef;
+  final DatabaseReference metalRef;
+  _BinWithLevels({required this.binId, required this.plasticRef, required this.metalRef});
+}
+
+// Helper class for bin with levels
+class _BinWithLevelsWithLevel {
+  final String binId;
+  final double plasticLevel;
+  final double metalLevel;
+  _BinWithLevelsWithLevel({required this.binId, required this.plasticLevel, required this.metalLevel});
+}
+
 class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
   // Firestore reference for registered bins
   final CollectionReference _registeredBinsRef =
@@ -37,7 +53,7 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
 
   // Helper function to handle bin level update with debouncing
   void _handleBinLevelUpdate(
-      String newLevel, String binId, String material) {
+      String newLevel, String binId, String material) async {
     // Initialize levels map for this bin if not exists
     _lastLevels[binId] ??= {
       'plastic': '',
@@ -49,11 +65,23 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
 
     // Only notify if level has changed
     if (newLevel != currentLevel) {
-      NotificationService().showBinLevelUpdate(
-        binName: 'Bin $binId',
-        material: material,
-        level: newLevel,
-      );
+      // Create a unique notification ID that includes the bin ID, material, and level
+      final notificationId = 'bin_${binId}_${material.toLowerCase()}_${newLevel.replaceAll('%', '')}';
+      
+      // Check if this notification was already sent
+      final wasSent = await NotificationService().wasNotificationSent(notificationId);
+      
+      if (!wasSent) {
+        await NotificationService().showBinLevelUpdate(
+          binName: 'Bin $binId',
+          material: material,
+          level: newLevel,
+          binId: binId,
+        );
+        
+        // Mark this notification as sent
+        await NotificationService().markNotificationAsSent(notificationId);
+      }
       
       // Update the stored level without triggering setState
       _lastLevels[binId]![material.toLowerCase()] = newLevel;
@@ -273,155 +301,10 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: false,
         title: const SizedBox.shrink(),
         actions: [
-          // Add Bin Registration Button
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline, color: Color(0xFF1A524F)),
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  final codeController = TextEditingController();
-                  return AlertDialog(
-                    title: const Text('Register New Bin',
-                        style: TextStyle(color: Color(0xFF1A524F))),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TextField(
-                          controller: codeController,
-                          decoration: const InputDecoration(
-                            labelText: 'Enter Bin Code',
-                            hintText: 'e.g., ABC123',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'Note: Each bin can be registered by up to 3 owners',
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        child: const Text('Cancel'),
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1A524F),
-                        ),
-                        child: const Text('Register'),
-                        onPressed: () async {
-                          final code = codeController.text.trim();
-                          if (code.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Please enter a bin code')),
-                            );
-                            return;
-                          }
-                          
-                          try {
-                            // First check if bin exists in Realtime Database
-                            final binRef = FirebaseDatabase.instance.ref('/BIN/$code');
-                            final binSnapshot = await binRef.get();
-                            
-                            if (!binSnapshot.exists) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('The bin doesn\'t exist')),
-                              );
-                              return;
-                            }
-
-                            final registeredBinsRef = FirebaseFirestore.instance.collection('registered_bins').doc(code);
-                            final doc = await registeredBinsRef.get();
-                            
-                            if (!doc.exists) {
-                              // Create new bin registration
-                              await registeredBinsRef.set({
-                                'owners': [FirebaseAuth.instance.currentUser?.uid],
-                                'created_at': FieldValue.serverTimestamp(),
-                                'bin_path': '/BIN/$code',
-                              });
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Bin registered successfully')),
-                              );
-                            } else {
-                              final data = doc.data() as Map<String, dynamic>;
-                              final owners = List<String>.from(data['owners'] ?? []);
-                              
-                              if (owners.contains(FirebaseAuth.instance.currentUser?.uid)) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('You have already registered this bin')),
-                                );
-                                return;
-                              }
-                              
-                              if (owners.length >= 3) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('This bin has reached the maximum number of owners')),
-                                );
-                                return;
-                              }
-                              
-                              owners.add(FirebaseAuth.instance.currentUser?.uid ?? '');
-                              await registeredBinsRef.update({'owners': owners});
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Bin registered successfully')),
-                              );
-                            }
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error registering bin: $e')),
-                            );
-                          }
-                        },
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.notification_add),
-            tooltip: 'Test Notification',
-            onPressed: _testNotifications,
-          ),
-          IconButton(
-            icon: const Icon(Icons.notifications),
-            onPressed: () {
-              Navigator.pushNamed(context, '/notifications');
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.pushNamed(
-                context,
-                '/bin_owner_profile',
-                arguments: user,
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.cloud, color: Colors.white),
-            onPressed: () async {
-              // Test the Cloud Function
-              await FCMService().sendTestNotificationViaCloudFunction();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Test notification sent via Cloud Function'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            tooltip: 'Test Cloud Function',
-          ),
+          // Removed IconButton widgets for add_circle_outline, notification_add, notifications, and person
         ],
       ),
       body: _isLoading
@@ -512,75 +395,7 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
                 }
 
                 return Column(
-                  children: snapshot.data!.docs.map((doc) {
-                    final binId = doc.id;
-                    final binRefs = _binRefs[binId] as Map<String, DatabaseReference>?;
-
-                    if (binRefs == null) return const SizedBox.shrink();
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Bin ID: $binId',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: StreamBuilder<DatabaseEvent>(
-                                  stream: binRefs['plastic']!.onValue,
-                                  builder: (context, snapshot) {
-                                    String level = '...';
-                                    if (snapshot.hasData &&
-                                        snapshot.data!.snapshot.value != null) {
-                                      final val = snapshot.data!.snapshot.value;
-                                      final rawStr = val.toString().replaceAll('%', '');
-                                      final num lvl = num.tryParse(rawStr) ?? 0;
-                                      level = '$lvl%';
-                                    }
-                                    return _buildBinWithSingleButton(
-                                      'Plastic Bin',
-                                      'assets/png/bin1.png',
-                                      'Current Level: $level',
-                                    );
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: StreamBuilder<DatabaseEvent>(
-                                  stream: binRefs['metal']!.onValue,
-                                  builder: (context, snapshot) {
-                                    String level = '...';
-                                    if (snapshot.hasData &&
-                                        snapshot.data!.snapshot.value != null) {
-                                      final val = snapshot.data!.snapshot.value;
-                                      final rawStr = val.toString().replaceAll('%', '');
-                                      final num lvl = num.tryParse(rawStr) ?? 0;
-                                      level = '$lvl%';
-                                    }
-                                    return _buildBinWithSingleButton(
-                                      'Metal Bin',
-                                      'assets/png/bin2.png',
-                                      'Current Level: $level',
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
+                  children: _getSortedBins(snapshot.data!.docs),
                 );
               },
             ),
@@ -670,6 +485,125 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
         ],
       ),
     );
+  }
+
+  // Add this method to sort and build bins
+  List<Widget> _getSortedBins(List<QueryDocumentSnapshot> docs) {
+    // Gather bin fullness data
+    List<_BinWithLevels> bins = [];
+    for (var doc in docs) {
+      final binId = doc.id;
+      final binRefs = _binRefs[binId] as Map<String, DatabaseReference>?;
+      if (binRefs == null) continue;
+      bins.add(_BinWithLevels(
+        binId: binId,
+        plasticRef: binRefs['plastic']!,
+        metalRef: binRefs['metal']!,
+      ));
+    }
+    return [
+      FutureBuilder<List<_BinWithLevelsWithLevel>>(
+        future: _fetchLevelsForBins(bins),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const SizedBox.shrink();
+          var binList = snapshot.data!;
+          // Sort by average fullness
+          binList.sort((a, b) {
+            final aAvg = (a.plasticLevel + a.metalLevel) / 2;
+            final bAvg = (b.plasticLevel + b.metalLevel) / 2;
+            if (_sortBy == 'Fullness: Ascendingly') {
+              return aAvg.compareTo(bAvg);
+            } else {
+              return bAvg.compareTo(aAvg);
+            }
+          });
+          return Column(
+            children: binList.map((bin) {
+              // Determine order of sub-bins
+              final isPlasticFirst = (_sortBy == 'Fullness: Ascendingly' && bin.plasticLevel <= bin.metalLevel) ||
+                  (_sortBy == 'Fullness: Descendingly' && bin.plasticLevel > bin.metalLevel);
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bin ID: ${bin.binId}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: isPlasticFirst
+                          ? [
+                              Expanded(
+                                child: _buildBinWithSingleButton(
+                                  'Plastic Bin',
+                                  'assets/png/bin1.png',
+                                  'Current Level: ${bin.plasticLevel}%',
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildBinWithSingleButton(
+                                  'Metal Bin',
+                                  'assets/png/bin2.png',
+                                  'Current Level: ${bin.metalLevel}%',
+                                ),
+                              ),
+                            ]
+                          : [
+                              Expanded(
+                                child: _buildBinWithSingleButton(
+                                  'Metal Bin',
+                                  'assets/png/bin2.png',
+                                  'Current Level: ${bin.metalLevel}%',
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildBinWithSingleButton(
+                                  'Plastic Bin',
+                                  'assets/png/bin1.png',
+                                  'Current Level: ${bin.plasticLevel}%',
+                                ),
+                              ),
+                            ],
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    ];
+  }
+
+  // Fetch levels for all bins
+  Future<List<_BinWithLevelsWithLevel>> _fetchLevelsForBins(List<_BinWithLevels> bins) async {
+    List<_BinWithLevelsWithLevel> result = [];
+    for (var bin in bins) {
+      final plasticSnap = await bin.plasticRef.get();
+      final metalSnap = await bin.metalRef.get();
+      double plasticLevel = 0;
+      double metalLevel = 0;
+      if (plasticSnap.value != null) {
+        plasticLevel = double.tryParse(plasticSnap.value.toString().replaceAll('%', '')) ?? 0;
+      }
+      if (metalSnap.value != null) {
+        metalLevel = double.tryParse(metalSnap.value.toString().replaceAll('%', '')) ?? 0;
+      }
+      result.add(_BinWithLevelsWithLevel(
+        binId: bin.binId,
+        plasticLevel: plasticLevel,
+        metalLevel: metalLevel,
+      ));
+    }
+    return result;
   }
 }
 

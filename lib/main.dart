@@ -188,8 +188,27 @@ void main() async {
   // Initialize Firebase
   await Firebase.initializeApp();
   
-  // Set up the background message handler BEFORE initializing FCM
+  // Initialize notification service
+  await NotificationService().init();
+  
+  // Set up background message handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
+  // Handle notifications from native Android
+  const platform = MethodChannel('com.sams.binit/notification');
+  platform.setMethodCallHandler((call) async {
+    if (call.method == 'handleNotification') {
+      final type = call.arguments['type'] as String;
+      final data = call.arguments['data'] as Map<String, dynamic>;
+      
+      await NotificationService().handleNativeNotification(
+        title: data['title'] ?? 'Notification',
+        body: data['body'] ?? 'You have a new notification',
+        type: type,
+        data: data,
+      );
+    }
+  });
   
   // Optimize Firestore settings for better performance and offline support
   FirebaseFirestore.instance.settings = Settings(

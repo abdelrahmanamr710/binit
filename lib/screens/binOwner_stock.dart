@@ -114,12 +114,7 @@ class BinOwnerStockScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A524F), // Teal-like background color
         elevation: 0, // Remove shadow
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
+        automaticallyImplyLeading: false, // Disable back button
         title: const Text(
           'Current Stock', // Title of the page
           style: TextStyle(
@@ -155,53 +150,52 @@ class BinOwnerStockScreen extends StatelessWidget {
       ),
       // Bottom Navigation Bar
       bottomNavigationBar: Container(
+        margin: const EdgeInsets.all(10),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A524F), // Background color of the nav bar
-          borderRadius: BorderRadius.circular(20), // Rounded corners
+          color: const Color(0xFF1A524F),
+          borderRadius: BorderRadius.circular(20),
         ),
-        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10), // Add some margin
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25.0, vertical: 5.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              _buildNavBarItem(
-                icon: Icons.dashboard_rounded,
-                label: 'Stock',
-                isSelected: currentIndex == 0,
-                onTap: () {
-                  // No need to navigate if already on the Stock screen
-                },
-              ),
-              _buildNavBarItem(
-                icon: Icons.home_filled,
-                label: 'Home',
-                isSelected: currentIndex == 1,
-                onTap: () {
-                  Navigator.of(context).pushReplacement(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavBarItem(
+              icon: Icons.dashboard,
+              label: 'Stock',
+              isSelected: currentIndex == 0,
+              onTap: () {
+                // No need to navigate if already on Stock screen
+              },
+            ),
+            _buildNavBarItem(
+              icon: Icons.home,
+              label: 'Home',
+              isSelected: currentIndex == 1,
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BinOwnerHomeScreen(currentIndex: 1),
+                  ),
+                );
+              },
+            ),
+            _buildNavBarItem(
+              icon: Icons.person,
+              label: 'Profile',
+              isSelected: currentIndex == 2,
+              onTap: () {
+                if (user != null) {
+                  Navigator.pushReplacement(
+                    context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          BinOwnerHomeScreen(currentIndex: 1),
+                      builder: (_) => BinOwnerProfile(user: user!),
                     ),
                   );
-                },
-              ),
-              _buildNavBarItem(
-                icon: Icons.person_rounded,
-                label: 'Profile',
-                isSelected: currentIndex == 2,
-                onTap: () {
-                  if (user != null) {
-                    Navigator.of(context).pushReplacement(
-                      MaterialPageRoute(
-                        builder: (context) => BinOwnerProfile(user: user!),
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
-          ),
+                }
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -213,24 +207,16 @@ class BinOwnerStockScreen extends StatelessWidget {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    final Color color = isSelected ? Colors.white : Colors.grey[300]!;
-
-    return InkWell(
+    final color = isSelected ? Colors.white : Colors.white70;
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(color: color, fontSize: 12),
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: color)),
+        ],
       ),
     );
   }
