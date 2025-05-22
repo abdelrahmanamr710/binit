@@ -594,18 +594,111 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No registered bins found.\nUse the + button to register a bin.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
+                final hasBins = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+
+                // Add register bin button at the top if bins exist
+                if (hasBins) {
+                  return Column(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A524F),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: PopupMenuButton<String>(
+                          offset: const Offset(0, 40),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          color: Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.add_circle_outline, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Manage Bins',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                Icon(Icons.arrow_drop_down, color: Colors.white),
+                              ],
+                            ),
+                          ),
+                          itemBuilder: (context) => [
+                            PopupMenuItem(
+                              value: 'add',
+                              child: Row(
+                                children: const [
+                                  Icon(Icons.add_circle_outline, color: Color(0xFF1A524F)),
+                                  SizedBox(width: 8),
+                                  Text('Register New Bin'),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 'remove',
+                              child: Row(
+                                children: const [
+                                  Icon(Icons.remove_circle_outline, color: Color(0xFF1A524F)),
+                                  SizedBox(width: 8),
+                                  Text('Remove Bin'),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onSelected: (value) {
+                            if (value == 'add') {
+                              _showRegisterBinDialog();
+                            } else if (value == 'remove') {
+                              _showRemoveBinDialog(snapshot.data!.docs);
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Column(
+                        children: _getSortedBins(snapshot.data!.docs),
+                      ),
+                    ],
                   );
                 }
 
-                return Column(
-                  children: _getSortedBins(snapshot.data!.docs),
+                // Show centered register bin button if no bins exist
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'No registered bins yet',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: () => _showRegisterBinDialog(),
+                        icon: const Icon(Icons.add_circle_outline, size: 32),
+                        label: const Text(
+                          'Register Your First Bin',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A524F),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),
@@ -732,6 +825,18 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
                         color: Colors.black,
                       ),
                     ),
+                    FutureBuilder<DocumentSnapshot>(
+                      future: FirebaseFirestore.instance.collection('registered_bins').doc(bin.binId).get(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) return const SizedBox.shrink();
+                        final owners = (snapshot.data?.data() as Map<String, dynamic>?)?['owners'] as List?;
+                        final ownerCount = (owners?.whereType<String>().length ?? 0);
+                        return Text(
+                          'Users connected: $ownerCount',
+                          style: const TextStyle(fontSize: 14, color: Colors.grey),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 8),
                     Row(
                       children: isPlasticFirst
@@ -798,6 +903,178 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
           child: page,
         ),
         transitionDuration: const Duration(milliseconds: 400),
+      ),
+    );
+  }
+
+  // Add this method to show the register bin dialog
+  Future<void> _showRegisterBinDialog() async {
+    final TextEditingController binIdController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Register New Bin'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: binIdController,
+            decoration: const InputDecoration(
+              labelText: 'Bin ID',
+              hintText: 'Enter the bin ID from the database',
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter a bin ID';
+              }
+              return null;
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (formKey.currentState!.validate()) {
+                final binId = binIdController.text.trim();
+                try {
+                  // Check if bin exists in database
+                  final binRef = FirebaseDatabase.instance.ref('BIN/$binId');
+                  final snapshot = await binRef.get();
+                  
+                  if (!snapshot.exists) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Bin ID not found in database')),
+                    );
+                    return;
+                  }
+
+                  // Check if bin is already registered
+                  final currentUser = FirebaseAuth.instance.currentUser;
+                  if (currentUser == null) return;
+
+                  final binDoc = await FirebaseFirestore.instance
+                      .collection('registered_bins')
+                      .doc(binId)
+                      .get();
+
+                  if (binDoc.exists) {
+                    final owners = (binDoc.data()?['owners'] as List?)?.whereType<String>().toList() ?? [];
+                    if (owners.contains(currentUser.uid)) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('You already own this bin')),
+                      );
+                      return;
+                    }
+                    
+                    // Check if bin already has 3 owners
+                    if (owners.length >= 3) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('This bin has reached its maximum limit of 3 owners')),
+                      );
+                      return;
+                    }
+                  }
+
+                  // Register the bin
+                  await FirebaseFirestore.instance
+                      .collection('registered_bins')
+                      .doc(binId)
+                      .set({
+                    'owners': FieldValue.arrayUnion([currentUser.uid]),
+                    'bin_path': '/BIN/$binId',
+                    'plastic_max_capacity': 50.0,
+                    'metals_max_capacity': 30.0,
+                    'plastic_total_weight': 0.0,
+                    'metal_total_weight': 0.0,
+                    'plastic_emptied_count': 0,
+                    'metal_emptied_count': 0,
+                  }, SetOptions(merge: true));
+
+                  if (!mounted) return;
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Bin registered successfully')),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error registering bin: $e')),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1A524F),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Register'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Add this method to show the remove bin dialog
+  Future<void> _showRemoveBinDialog(List<QueryDocumentSnapshot> bins) async {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Bin'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: bins.length,
+            itemBuilder: (context, index) {
+              final bin = bins[index];
+              return ListTile(
+                title: Text('Bin ID: ${bin.id}'),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () async {
+                    try {
+                      final currentUser = FirebaseAuth.instance.currentUser;
+                      if (currentUser == null) return;
+
+                      // Remove the current user from the owners array
+                      await FirebaseFirestore.instance
+                          .collection('registered_bins')
+                          .doc(bin.id)
+                          .update({
+                        'owners': FieldValue.arrayRemove([currentUser.uid])
+                      });
+
+                      if (!mounted) return;
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Bin removed successfully')),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error removing bin: $e')),
+                      );
+                    }
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
   }

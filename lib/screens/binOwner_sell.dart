@@ -11,6 +11,9 @@ import 'package:binit/screens/binOwner_stock.dart';
 import 'package:binit/screens/binOwner_homescreen.dart';
 import 'package:binit/screens/binOwner_profile.dart';
 import 'package:animations/animations.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 // Define a Cubit for managing the SellForm state
 class SellFormCubit extends Cubit<Map<String, dynamic>> {
@@ -18,10 +21,22 @@ class SellFormCubit extends Cubit<Map<String, dynamic>> {
     'kilograms': 0.0,
     'price': 0.0,
     'pickupDate': DateTime.now(),
+    'latitude': 0.0,
+    'longitude': 0.0,
+    'locationAddress': '',
   });
 
   void updateField(String field, dynamic value) {
     emit({...state, field: value});
+  }
+
+  void updateLocation(double lat, double lng, String address) {
+    emit({
+      ...state,
+      'latitude': lat,
+      'longitude': lng,
+      'locationAddress': address,
+    });
   }
 
   // Function to submit the form data to Firebase
@@ -40,6 +55,9 @@ class SellFormCubit extends Cubit<Map<String, dynamic>> {
         'district': state['district'],
         'city': state['city'],
         'pickupAddress': state['pickupAddress'],
+        'latitude': state['latitude'],
+        'longitude': state['longitude'],
+        'locationAddress': state['locationAddress'],
         'userId': FirebaseAuth.instance.currentUser?.uid,
         'status': 'pending',
         'date': FieldValue.serverTimestamp(),
@@ -48,6 +66,9 @@ class SellFormCubit extends Cubit<Map<String, dynamic>> {
         'kilograms': 0.0,
         'price': 0.0,
         'pickupDate': DateTime.now(),
+        'latitude': 0.0,
+        'longitude': 0.0,
+        'locationAddress': '',
       });
       print('Form data submitted successfully!');
 
@@ -101,6 +122,10 @@ class _UserSellFormState extends State<UserSellForm> {
   String _selectedMaterial = 'Plastic';
   double _maxStock = 0.0;
   bool _loadingStock = true;
+  GoogleMapController? _mapController;
+  Set<Marker> _markers = {};
+  LatLng _selectedLocation = const LatLng(0, 0);
+  bool _isLoadingLocation = false;
 
   @override
   void initState() {
@@ -109,6 +134,7 @@ class _UserSellFormState extends State<UserSellForm> {
       _selectedMaterial = widget.initialMaterial!;
     }
     _fetchStock();
+    _getCurrentLocation();
   }
 
   Future<void> _fetchStock() async {
@@ -153,6 +179,68 @@ class _UserSellFormState extends State<UserSellForm> {
     if (picked != null && picked != cubit.state['pickupDate']) {
       cubit.updateField('pickupDate', picked);
     }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() => _isLoadingLocation = true);
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw 'Location permission denied';
+        }
+      }
+
+      Position position = await Geolocator.getCurrentPosition();
+      _selectedLocation = LatLng(position.latitude, position.longitude);
+      _updateMarker(_selectedLocation);
+      if (_mapController != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(_selectedLocation, 15),
+        );
+      }
+      _updateLocationAddress(_selectedLocation);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error getting location: $e')),
+      );
+    } finally {
+      setState(() => _isLoadingLocation = false);
+    }
+  }
+
+  Future<void> _updateLocationAddress(LatLng position) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        String address = '${place.street}, ${place.locality}, ${place.country}';
+        context.read<SellFormCubit>().updateLocation(
+          position.latitude,
+          position.longitude,
+          address,
+        );
+      }
+    } catch (e) {
+      print('Error getting address: $e');
+    }
+  }
+
+  void _updateMarker(LatLng position) {
+    setState(() {
+      _markers = {
+        Marker(
+          markerId: const MarkerId('selected_location'),
+          position: position,
+          infoWindow: const InfoWindow(title: 'Pickup Location'),
+        ),
+      };
+      _selectedLocation = position;
+    });
   }
 
   @override
@@ -354,7 +442,7 @@ class _UserSellFormState extends State<UserSellForm> {
                 maxLines: 2,
                 decoration: InputDecoration(
                   labelText: 'Pickup Address',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -365,7 +453,42 @@ class _UserSellFormState extends State<UserSellForm> {
                 onChanged: (value) =>
                     cubit.updateField('pickupAddress', value),
               ),
-                    const SizedBox(height: 24.0),
+              const SizedBox(height: 16.0),
+              const Text(
+                'Select Location on Map:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+              ),
+              const SizedBox(height: 8.0),
+              Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+                child: _isLoadingLocation
+                    ? const Center(child: CircularProgressIndicator())
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(8.0),
+                        child: GoogleMap(
+                          initialCameraPosition: CameraPosition(
+                            target: _selectedLocation,
+                            zoom: 15,
+                          ),
+                          markers: _markers,
+                          onMapCreated: (controller) => _mapController = controller,
+                          onTap: (LatLng position) {
+                            _updateMarker(position);
+                            _updateLocationAddress(position);
+                          },
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 8.0),
+              Text(
+                'Selected Location: ${cubit.state['locationAddress'] ?? 'Not selected'}',
+                style: const TextStyle(fontSize: 12.0, color: Colors.grey),
+              ),
+              const SizedBox(height: 24.0),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

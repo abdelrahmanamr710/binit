@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -19,10 +20,14 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'screens/recyclingCompany_homescreen.dart';
 import 'screens/binOwner_profile.dart';
 import 'screens/binOwner_notifications.dart';
+import 'screens/faq_screen.dart';
+import 'screens/contact_support_screen.dart';
+import 'screens/feedback_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:provider/provider.dart';
 
 // Top-level function for handling Firebase messages in background
 @pragma('vm:entry-point')
@@ -123,11 +128,39 @@ class BinItApp extends StatefulWidget {
 
 class _BinItAppState extends State<BinItApp> {
   String? _initialRoute;
+  late final Stream<RemoteMessage> _onMessageStream;
+  late final StreamSubscription<RemoteMessage> _onMessageSubscription;
 
   @override
   void initState() {
     super.initState();
     _checkInitialRoute();
+
+    // Set up a global notification listener for foreground messages
+    _onMessageStream = FirebaseMessaging.onMessage;
+    _onMessageSubscription = _onMessageStream.listen((RemoteMessage message) async {
+      print('Global FCM listener triggered: \\${message.data}');
+      final data = message.data;
+      final type = data['type'];
+      if (type == 'bin_level_update') {
+        await NotificationService().showBinLevelUpdate(
+          binName: data['binName'] ?? 'Unknown',
+          material: data['material'] ?? 'Unknown',
+          level: data['level'] ?? '0',
+        );
+      } else if (type == 'offer_accepted') {
+        await NotificationService().showOfferAccepted(
+          company: data['company'] ?? 'Unknown',
+          kilos: num.tryParse(data['kilos'] ?? '0') ?? 0,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _onMessageSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _checkInitialRoute() async {
@@ -167,16 +200,22 @@ class _BinItAppState extends State<BinItApp> {
       themeMode: ThemeMode.system,
       initialRoute: _initialRoute ?? '/',
       debugShowCheckedModeBanner: false,
-      routes: <String, WidgetBuilder>{ // Define routes for navigation
+      routes: <String, WidgetBuilder>{
         '/': (context) => const SplashScreen(),
         '/login': (context) => const LoginScreen(),
         '/signup_as': (context) => const SignUpAs(),
         '/bin_owner_signup': (context) => const BinOwnerSignupScreen(),
         '/recycling_company_signup': (context) => const RecyclingCompanySignupScreen(),
-        '/bin_owner_home': (context) => const BinOwnerHomeScreen(), // Add this route.
-        '/recycling_company_home': (context) => const RecyclingCompanyHomeScreen(), // Add this route.'
-        '/bin_owner_profile': (context) => BinOwnerProfile(user: ModalRoute.of(context)!.settings.arguments as UserModel), // corrected route
+        '/bin_owner_home': (context) => const BinOwnerHomeScreen(),
+        '/recycling_company_home': (context) => const RecyclingCompanyHomeScreen(),
+        '/bin_owner_profile': (context) => BinOwnerProfile(user: ModalRoute.of(context)!.settings.arguments as UserModel),
         '/notifications': (context) => const BinOwnerNotificationsScreen(),
+        '/faq': (context) => const FAQScreen(),
+        '/contact_support': (context) => ContactSupportScreen(),
+        '/feedback': (context) {
+          final user = Provider.of<UserModel>(context, listen: false);
+          return FeedbackScreen(user: user);
+        },
       },
     );
   }

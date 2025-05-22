@@ -52,5 +52,13 @@
 	</array>
 	<key>FirebaseAppDelegateProxyEnabled</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>We need access to your camera to take profile pictures and upload images for feedback.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>We need access to your photo library to select images for your profile and feedback.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need access to your microphone for video feedback.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>We need access to save images to your photo library.</string>
 </dict>
 </plist>

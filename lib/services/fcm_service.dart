@@ -68,9 +68,6 @@ class FCMService {
         await _userCredentialsCacheService.updateCachedFCMToken(token);
       });
 
-      // Handle foreground messages
-      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-
       // Set background notification handling
       await _messaging.setAutoInitEnabled(true);
       
@@ -273,25 +270,6 @@ class FCMService {
       } catch (e) {
         print("Error saving FCM token: $e");
       }
-    }
-  }
-
-  void _handleForegroundMessage(RemoteMessage message) async {
-    print("Received foreground message: ${message.messageId}");
-    print("Message data: ${message.data}");
-    
-    if (message.data['type'] == 'offer_accepted') {
-      await _notificationService.showOfferAccepted(
-        company: message.data['companyName'] ?? 'A company',
-        kilos: num.tryParse(message.data['kilos']?.toString() ?? '0') ?? 0,
-      );
-    } else if (message.data['type'] == 'bin_level_update') {
-      await _notificationService.showBinLevelUpdate(
-        binName: message.data['binName'] ?? 'Unknown',
-        material: message.data['material'] ?? 'Unknown',
-        level: message.data['level']?.toString() ?? '0%',
-        binId: message.data['binId'],
-      );
     }
   }
 

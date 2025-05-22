@@ -54,8 +54,11 @@ class _RecyclingCompanyOrdersScreenState
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      });
       return const Scaffold(
-        body: Center(child: Text('User not signed in')),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
     final uid = user.uid;

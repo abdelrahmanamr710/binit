@@ -3,6 +3,14 @@ import 'package:binit/services/auth_service.dart'; // Import AuthService.  Make 
 import 'package:binit/models/user_model.dart'; // Import UserModel.  Make sure this path is correct.
 import 'package:binit/screens/binOwner_homescreen.dart'; // Import BinOwnerHomeScreen. Make sure this path is correct.
 import 'package:binit/screens/binOwner_stock.dart';
+import 'package:binit/screens/account_screen.dart';
+import 'package:binit/screens/feedback_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
 import 'package:binit/screens/binOwner_orders.dart';
 
 class BinOwnerProfile extends StatefulWidget {
@@ -16,21 +24,48 @@ class BinOwnerProfile extends StatefulWidget {
 class _BinOwnerProfileState extends State<BinOwnerProfile> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _descriptionController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isEditing = false; // Track editing state
   String _errorMessage = '';
   int _currentIndex = 2; // Initialize the current index
+  File? _imageFile;
+  String? _selectedCategory;
+  String? _selectedPriority;
+  bool _isSubmitting = false;
+
+  // Notification preferences
+  bool _binLevelUpdates = true;
+  bool _offerNotifications = true;
+  bool _systemNotifications = true;
+
+  final List<String> _feedbackCategories = [
+    'Technical Issue',
+    'Feature Request',
+    'Bug Report',
+    'General Feedback'
+  ];
+
+  final List<String> _priorityLevels = [
+    'Low',
+    'Medium',
+    'High',
+    'Critical'
+  ];
 
   @override
   void initState() {
     super.initState();
     // Initialize the text controllers with the user's current values.
     _nameController.text = widget.user.name ?? '';
+    _descriptionController.text = '';
+    _loadUserPreferences();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -80,11 +115,137 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
   }
 
   bool _isLoading = false;
+
+  Future<void> _loadUserPreferences() async {
+    try {
+      final prefsDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.user.uid)
+          .collection('preferences')
+          .doc('notificationSettings')
+          .get();
+
+      if (prefsDoc.exists) {
+        final data = prefsDoc.data()!;
+        setState(() {
+          _binLevelUpdates = data['binLevelUpdates'] ?? true;
+          _offerNotifications = data['offerNotifications'] ?? true;
+          _systemNotifications = data['systemNotifications'] ?? true;
+        });
+      }
+    } catch (e) {
+      print('Error loading preferences: $e');
+    }
+  }
+
+  Future<void> _updateNotificationPreferences() async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.user.uid)
+          .collection('preferences')
+          .doc('notificationSettings')
+          .set({
+        'binLevelUpdates': _binLevelUpdates,
+        'offerNotifications': _offerNotifications,
+        'systemNotifications': _systemNotifications,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preferences updated successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error updating preferences: $e')),
+      );
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (image != null) {
+      setState(() {
+        _imageFile = File(image.path);
+      });
+    }
+  }
+
+  Future<String?> _uploadImage() async {
+    if (_imageFile == null) return null;
+
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('feedback_images')
+          .child('${widget.user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+      await storageRef.putFile(_imageFile!);
+      return await storageRef.getDownloadURL();
+    } catch (e) {
+      print('Error uploading image: $e');
+      return null;
+    }
+  }
+
+  Future<void> _submitFeedback() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategory == null || _selectedPriority == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select category and priority')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final imageUrl = await _uploadImage();
+      
+      await FirebaseFirestore.instance.collection('feedback').add({
+        'userId': widget.user.uid,
+        'userName': widget.user.name,
+        'userEmail': widget.user.email,
+        'imageUrl': imageUrl,
+        'description': _descriptionController.text,
+        'category': _selectedCategory,
+        'priority': _selectedPriority,
+        'status': 'pending',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      setState(() {
+        _imageFile = null;
+        _descriptionController.clear();
+        _selectedCategory = null;
+        _selectedPriority = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Feedback submitted successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error submitting feedback: $e')),
+      );
+    } finally {
+      setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _launchUrl(String url) async {
+    if (!await launchUrl(Uri.parse(url))) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1A524F), // Dark green background
+        backgroundColor: const Color(0xFF1A524F),
         elevation: 0,
         automaticallyImplyLeading: false,
         title: const Text('Profile', style: TextStyle(color: Colors.white)),
@@ -111,158 +272,176 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Center(
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  Container(
-                    width: 120.0,
-                    height: 120.0,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey.shade300),
+            // Account Section
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.person_outline, color: Color(0xFF1A524F)),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Account',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1A524F),
+                          ),
+                        ),
+                      ],
                     ),
-                    child: const CircleAvatar(
-                      radius: 60.0,
-                      backgroundImage: AssetImage('assets/png/profile.png'), // Use the profile.png asset
+                    const SizedBox(height: 16),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.edit, color: Color(0xFF1A524F)),
+                      title: const Text('Edit Profile'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AccountScreen(user: widget.user),
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                  if (_isEditing)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(4.0),
-                        child: Icon(Icons.camera_alt, size: 20.0, color: Colors.grey),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30.0),
-            Text(
-              'Name',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 8.0),
-            TextFormField(
-              controller: _nameController,
-              enabled: _isEditing,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-              ),
-            ),
-            const SizedBox(height: 20.0),
-            Text(
-              'Password',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 8.0),
-            TextFormField(
-              obscureText: true,
-              decoration: InputDecoration(
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-              ),
-              readOnly: true, // Password is not directly editable here
-              onTap: () {}
-
-
-
-            ),
-            const SizedBox(height: 20.0),
-            Text(
-              'Date of Birth',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 8.0),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(10.0),
-                color: Colors.grey.shade100,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '28/01/2004', // Placeholder for date of birth
-                    style: TextStyle(color: Colors.black87),
-                  ),
-                  if (_isEditing)
-                    const Icon(Icons.calendar_today_outlined, color: Colors.grey),
-                  if (!_isEditing)
-                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20.0),
-            Text(
-              'Country/Region',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-            ),
-            const SizedBox(height: 8.0),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(10.0),
-                color: Colors.grey.shade100,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Egypt', // Placeholder for country/region
-                    style: TextStyle(color: Colors.black87),
-                  ),
-                  if (_isEditing)
-                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                  if (!_isEditing)
-                    const Icon(Icons.arrow_drop_down, color: Colors.grey),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) => BinOwnerOrders(userId: widget.user.uid ?? ""),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A524F), // Dark green save button
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-                padding: const EdgeInsets.symmetric(vertical: 12.0),
-              ),
-              child: const Text('Go to Bin Owner Orders', style: TextStyle(fontSize: 16.0)),
-            ),
-            const SizedBox(height: 30.0),
-            if (_isEditing)
-              ElevatedButton(
-                onPressed: _isLoading ? null : _saveChanges,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1A524F), // Dark green save button
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
+                  ],
                 ),
-                child: _isLoading
-                    ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
-                    : const Text('Save changes', style: TextStyle(fontSize: 16.0)),
               ),
+            ),
+
+            // Orders Section
+            Card(
+              margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.shopping_bag_outlined, color: Color(0xFF1A524F)),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Orders',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1A524F),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.history, color: Color(0xFF1A524F)),
+                      title: const Text('View Orders Status'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => BinOwnerOrders(userId: widget.user.uid ?? ""),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Notification Preferences Section
+            _buildSection(
+              title: 'Notification Preferences',
+              icon: Icons.notifications,
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        title: const Text('Bin Level Updates'),
+                        value: _binLevelUpdates,
+                        onChanged: (value) {
+                          setState(() => _binLevelUpdates = value);
+                          _updateNotificationPreferences();
+                        },
+                        activeColor: const Color(0xFF1A524F),
+                      ),
+                      SwitchListTile(
+                        title: const Text('Offer Notifications'),
+                        value: _offerNotifications,
+                        onChanged: (value) {
+                          setState(() => _offerNotifications = value);
+                          _updateNotificationPreferences();
+                        },
+                        activeColor: const Color(0xFF1A524F),
+                      ),
+                      SwitchListTile(
+                        title: const Text('System Notifications'),
+                        value: _systemNotifications,
+                        onChanged: (value) {
+                          setState(() => _systemNotifications = value);
+                          _updateNotificationPreferences();
+                        },
+                        activeColor: const Color(0xFF1A524F),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20.0),
+
+            // Support Section
+            _buildSection(
+              title: 'Support',
+              icon: Icons.support_agent,
+              child: Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.help_outline, color: Color(0xFF1A524F)),
+                      title: const Text('Frequently Asked Questions'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () => Navigator.pushNamed(context, '/faq'),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.support_agent, color: Color(0xFF1A524F)),
+                      title: const Text('Contact Support'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () => Navigator.pushNamed(context, '/contact_support'),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.feedback, color: Color(0xFF1A524F)),
+                      title: const Text('Submit Feedback'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FeedbackScreen(user: widget.user),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -317,6 +496,46 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required IconData icon,
+    Widget? child,
+    VoidCallback? onTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: const Color(0xFF1A524F)),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A524F),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (child != null)
+          child
+        else
+          Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: ListTile(
+              onTap: onTap,
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              title: Text('View $title'),
+            ),
+          ),
+      ],
     );
   }
 

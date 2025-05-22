@@ -267,14 +267,7 @@ class NotificationService {
       
       _cachedUserId = user.uid;
       
-      // First check if we have a cached value in SharedPreferences
-      final cachedType = _prefs.getString(_userTypeKey);
-      if (cachedType != null) {
-        _isUserBinOwner = cachedType == 'binOwner';
-        return _isUserBinOwner!;
-      }
-      
-      // If no cached value, query Firestore
+      // Query Firestore for user type
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -290,7 +283,7 @@ class NotificationService {
       
       // Cache the result
       _isUserBinOwner = isBinOwner;
-      await _prefs.setString(_userTypeKey, userType ?? 'unknown');
+      await _cacheUserType(isBinOwner);
       
       // Also update the user credentials cache service
       if (isBinOwner) {
