@@ -4,12 +4,66 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:binit/screens/recyclingCompany_homescreen.dart';
 import 'package:binit/screens/recyclingCompany_previousOrders.dart';
+import 'package:binit/screens/account_screen.dart';
+import 'package:binit/screens/feedback_screen.dart';
+import 'package:binit/models/user_model.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:animations/animations.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class RecyclingCompanyProfileScreen extends StatelessWidget {
+class RecyclingCompanyProfileScreen extends StatefulWidget {
   const RecyclingCompanyProfileScreen({super.key});
+
+  @override
+  State<RecyclingCompanyProfileScreen> createState() => _RecyclingCompanyProfileScreenState();
+}
+
+class _RecyclingCompanyProfileScreenState extends State<RecyclingCompanyProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _descriptionController = TextEditingController();
+  String? _selectedCategory;
+  String? _selectedPriority;
+  bool _isSubmitting = false;
+
+  final List<String> _feedbackCategories = [
+    'Technical Issue',
+    'Feature Request',
+    'Bug Report',
+    'General Feedback'
+  ];
+
+  final List<String> _priorityLevels = [
+    'Low',
+    'Medium',
+    'High',
+    'Critical'
+  ];
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _launchEmail() async {
+    final Uri emailLaunchUri = Uri(
+      scheme: 'mailto',
+      path: 'support@binit.com',
+      queryParameters: {
+        'subject': 'Support Request',
+      },
+    );
+    
+    if (await canLaunchUrl(emailLaunchUri)) {
+      await launchUrl(emailLaunchUri);
+    } else {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not launch email client')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +76,6 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-
-    final uid = user.uid;
 
     return Scaffold(
       appBar: AppBar(
@@ -45,149 +97,179 @@ class RecyclingCompanyProfileScreen extends StatelessWidget {
           statusBarIconBrightness: Brightness.light,
         ),
       ),
-      extendBodyBehindAppBar: true,
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(top: 120.0, left: 20.0, right: 20.0, bottom: 15.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Center(
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  Container(
-                    width: 120.0,
-                    height: 120.0,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: const CircleAvatar(
-                      radius: 60.0,
-                      backgroundImage: AssetImage('assets/png/profile.png'),
+        padding: const EdgeInsets.all(20.0),
+        child: FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance.collection('users').doc(user.uid).get(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (snapshot.hasError || !snapshot.hasData) {
+              return const Center(child: Text('Error loading profile'));
+            }
+
+            final userData = snapshot.data!.data() as Map<String, dynamic>;
+            final userModel = UserModel(
+              uid: user.uid,
+              email: userData['email'],
+              name: userData['name'],
+              userType: userData['userType'],
+              phone: userData['phone'],
+              taxId: userData['taxId'],
+            );
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Profile Image
+                Center(
+                  child: Stack(
+                    alignment: Alignment.bottomRight,
+                    children: [
+                      Container(
+                        width: 120.0,
+                        height: 120.0,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: const CircleAvatar(
+                          radius: 60.0,
+                          backgroundImage: AssetImage('assets/png/profile.png'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30.0),
+
+                // Account Section
+                Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.person_outline, color: Color(0xFF1A524F)),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Account',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1A524F),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.edit, color: Color(0xFF1A524F)),
+                          title: const Text('Edit Profile'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => AccountScreen(user: userModel),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 30.0),
-            FutureBuilder<DocumentSnapshot>(
-              future: FirebaseFirestore.instance.collection('users').doc(uid).get(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Shimmer.fromColors(
-                    baseColor: Colors.grey[300]!,
-                    highlightColor: Colors.grey[100]!,
-                    child: Container(
-                      height: 300,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  );
-                }
+                ),
 
-                if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
-                  return const Center(child: Text('Failed to load profile'));
-                }
-
-                final data = snapshot.data!.data() as Map<String, dynamic>;
-                final name = data['name'] ?? '';
-                final email = data['email'] ?? '';
-                final phone = data['phone']?.toString() ?? '';
-                final taxId = data['taxId']?.toString() ?? '';
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Name',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-                    ),
-                    const SizedBox(height: 8.0),
-                    TextFormField(
-                      initialValue: name,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                      ),
-                    ),
-                    const SizedBox(height: 20.0),
-                    Text(
-                      'Email',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-                    ),
-                    const SizedBox(height: 8.0),
-                    TextFormField(
-                      initialValue: email,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                      ),
-                    ),
-                    const SizedBox(height: 20.0),
-                    Text(
-                      'Phone',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-                    ),
-                    const SizedBox(height: 8.0),
-                    TextFormField(
-                      initialValue: phone,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                      ),
-                    ),
-                    const SizedBox(height: 20.0),
-                    Text(
-                      'Tax ID',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-                    ),
-                    const SizedBox(height: 8.0),
-                    TextFormField(
-                      initialValue: taxId,
-                      readOnly: true,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10.0)),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                      ),
-                    ),
-                    const SizedBox(height: 30.0),
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          await FirebaseAuth.instance.signOut();
-                          Navigator.of(context).pushReplacementNamed('/login');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1A524F),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
-                          padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 40.0),
+                // Support Section
+                Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.support_agent, color: Color(0xFF1A524F)),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Support',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1A524F),
+                              ),
+                            ),
+                          ],
                         ),
-                        child: const Text('Sign Out', style: TextStyle(fontSize: 16.0)),
+                        const SizedBox(height: 16),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.feedback_outlined, color: Color(0xFF1A524F)),
+                          title: const Text('Send Feedback'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => FeedbackScreen(user: userModel),
+                              ),
+                            );
+                          },
+                        ),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.help_outline, color: Color(0xFF1A524F)),
+                          title: const Text('FAQ'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () {
+                            Navigator.pushNamed(context, '/faq');
+                          },
+                        ),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.email_outlined, color: Color(0xFF1A524F)),
+                          title: const Text('Contact Support'),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: _launchEmail,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Sign Out Button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await FirebaseAuth.instance.signOut();
+                      if (!mounted) return;
+                      Navigator.of(context).pushReplacementNamed('/login');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                  ],
-                ).animate()
-                  .fade(duration: 400.ms)
-                  .slideY(begin: 0.1, end: 0, duration: 400.ms);
-              },
-            ),
-          ],
+                    child: const Text('Sign Out'),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
       bottomNavigationBar: LayoutBuilder(

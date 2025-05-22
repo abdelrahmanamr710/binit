@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:binit/services/notification_service.dart';
 import 'package:binit/services/fcm_service.dart';
+import 'package:binit/services/notification_manager.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:async';
 import 'package:shimmer/shimmer.dart';
@@ -102,14 +103,13 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
     _startAcceptedOfferListener();
     _fetchUserData();
     _setupRegisteredBins();
+    // Initialize the notification manager
+    NotificationManager().initialize();
   }
   
   @override
   void dispose() {
-    // Cancel all subscriptions to prevent memory leaks
-    for (var subscription in _levelSubscriptions) {
-      subscription.cancel();
-    }
+    // Only dispose of Firestore subscriptions, let NotificationManager handle its own
     for (var subscription in _firestoreSubscriptions) {
       subscription.cancel();
     }
@@ -128,12 +128,6 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
           .listen((snapshot) {
         if (!mounted) return;
         
-        // Cancel existing subscriptions before creating new ones
-        for (var subscription in _levelSubscriptions) {
-          subscription.cancel();
-        }
-        _levelSubscriptions.clear();
-        
         final Map<String, Map<String, DatabaseReference>> newBinRefs = {};
         
         for (var doc in snapshot.docs) {
@@ -144,21 +138,6 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
           // Create database reference for this bin
           final plasticRef = FirebaseDatabase.instance.ref('$binPath/plastic/level');
           final metalRef = FirebaseDatabase.instance.ref('$binPath/metal/level');
-
-          // Set up real-time listeners for level changes with optimized approach
-          final plasticSubscription = plasticRef.onValue.listen((event) {
-            if (!mounted) return;
-            final newLevel = event.snapshot.value?.toString() ?? '0%';
-            _handleBinLevelUpdate(newLevel, binId, 'Plastic');
-          });
-          _levelSubscriptions.add(plasticSubscription);
-
-          final metalSubscription = metalRef.onValue.listen((event) {
-            if (!mounted) return;
-            final newLevel = event.snapshot.value?.toString() ?? '0%';
-            _handleBinLevelUpdate(newLevel, binId, 'Metal');
-          });
-          _levelSubscriptions.add(metalSubscription);
 
           newBinRefs[binId] = <String, DatabaseReference>{
             'plastic': plasticRef,

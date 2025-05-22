@@ -15,6 +15,7 @@ import 'src/pigeon.g.dart';
 import 'screens/binOwner_homescreen.dart';
 import 'services/notification_service.dart';
 import 'services/fcm_service.dart';
+import 'services/notification_manager.dart';
 import 'services/user_credentials_cache_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'screens/recyclingCompany_homescreen.dart';
@@ -37,6 +38,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   
   // Initialize notification service
   await NotificationService().init();
+  await NotificationManager().initialize();  // Initialize NotificationManager in background
 
   print("Handling a background message: ${message.messageId}");
   print("Message data: ${message.data}");
@@ -135,11 +137,12 @@ class _BinItAppState extends State<BinItApp> {
   void initState() {
     super.initState();
     _checkInitialRoute();
+    _initializeServices();
 
     // Set up a global notification listener for foreground messages
     _onMessageStream = FirebaseMessaging.onMessage;
     _onMessageSubscription = _onMessageStream.listen((RemoteMessage message) async {
-      print('Global FCM listener triggered: \\${message.data}');
+      print('Global FCM listener triggered: ${message.data}');
       final data = message.data;
       final type = data['type'];
       if (type == 'bin_level_update') {
@@ -157,9 +160,15 @@ class _BinItAppState extends State<BinItApp> {
     });
   }
 
+  Future<void> _initializeServices() async {
+    await NotificationService().init();
+    await NotificationManager().initialize();
+  }
+
   @override
   void dispose() {
     _onMessageSubscription.cancel();
+    NotificationManager().dispose();  // Clean up NotificationManager
     super.dispose();
   }
 

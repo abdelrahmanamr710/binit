@@ -101,6 +101,62 @@ class _BinOwnerStockScreenState extends State<BinOwnerStockScreen> {
     );
   }
 
+  Future<void> _clearStock(String type) async {
+    bool confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Clear ${type} Stock'),
+        content: Text('Are you sure you want to clear all ${type.toLowerCase()} stock? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear Stock'),
+          ),
+        ],
+      ),
+    ) ?? false;
+
+    if (!confirm) return;
+
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) return;
+
+      // Get all bins for this user
+      final bins = await _firestore.collection('registered_bins')
+        .where('owners', arrayContains: userId)
+        .get();
+
+      // Update each bin
+      for (var bin in bins.docs) {
+        await bin.reference.update({
+          type == 'Plastic' ? 'plastic_total_weight' : 'metal_total_weight': 0.0,
+          type == 'Plastic' ? 'plastic_emptied_count' : 'metal_emptied_count': 0,
+          type == 'Plastic' ? 'plastic_last_emptied' : 'metal_last_emptied': null,
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${type} stock cleared successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error clearing stock: $e')),
+        );
+      }
+    }
+  }
+
   Widget _buildStockItem({
     required String type,
     required String weight,
@@ -144,12 +200,21 @@ class _BinOwnerStockScreenState extends State<BinOwnerStockScreen> {
                 onSelected: (value) {
                   if (value == 'change_capacity') {
                     _showCapacityDialog(type, currentCapacity, '');
+                  } else if (value == 'clear_stock') {
+                    _clearStock(type);
                   }
                 },
                 itemBuilder: (context) => [
                   const PopupMenuItem(
                     value: 'change_capacity',
                     child: Text('Change Bin Capacity'),
+                  ),
+                  PopupMenuItem(
+                    value: 'clear_stock',
+                    child: Text(
+                      'Clear Stock',
+                      style: TextStyle(color: Colors.red),
+                    ),
                   ),
                 ],
               ),
@@ -182,27 +247,42 @@ class _BinOwnerStockScreenState extends State<BinOwnerStockScreen> {
             ),
           ),
           const SizedBox(height: 16.0),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        BinOwnerSell(userName: widget.userName, user: widget.user, initialMaterial: type == 'Plastic' ? 'Plastic' : 'Metal'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              OutlinedButton(
+                onPressed: () => _clearStock(type),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.red,
+                  side: const BorderSide(color: Colors.red),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20.0),
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF26A69A),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: const Text('Clear'),
               ),
-              child: const Text('Sell'),
-            ),
+              const SizedBox(width: 8.0),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          BinOwnerSell(userName: widget.userName, user: widget.user, initialMaterial: type == 'Plastic' ? 'Plastic' : 'Metal'),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF26A69A),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                ),
+                child: const Text('Sell'),
+              ),
+            ],
           ),
         ],
       ),

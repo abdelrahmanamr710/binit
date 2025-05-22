@@ -5,48 +5,31 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:binit/screens/sell_requested.dart';
-import 'package:binit/models/user_model.dart'; // Import UserModel
-import 'package:flutter/cupertino.dart'; // Import for CupertinoDatePicker if needed
+import 'package:binit/models/user_model.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:binit/screens/binOwner_stock.dart';
 import 'package:binit/screens/binOwner_homescreen.dart';
 import 'package:binit/screens/binOwner_profile.dart';
 import 'package:animations/animations.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:binit/screens/sell_confirmation_screen.dart';
 
 // Define a Cubit for managing the SellForm state
 class SellFormCubit extends Cubit<Map<String, dynamic>> {
   SellFormCubit() : super({
     'kilograms': 0.0,
-    'price': 0.0,
+    'price': 100.0, // Initialize with default base price
     'pickupDate': DateTime.now(),
-    'latitude': 0.0,
-    'longitude': 0.0,
-    'locationAddress': '',
   });
 
   void updateField(String field, dynamic value) {
     emit({...state, field: value});
   }
 
-  void updateLocation(double lat, double lng, String address) {
-    emit({
-      ...state,
-      'latitude': lat,
-      'longitude': lng,
-      'locationAddress': address,
-    });
-  }
-
-  // Function to submit the form data to Firebase
   Future<void> submitForm(BuildContext context) async {
-    // Ensure Firebase is initialized
     await Firebase.initializeApp();
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
     try {
-      // Add the data to the 'sell_offers' collection
       await firestore.collection('sell_offers').add({
         'kilograms': state['kilograms'],
         'price': state['price'],
@@ -55,9 +38,6 @@ class SellFormCubit extends Cubit<Map<String, dynamic>> {
         'district': state['district'],
         'city': state['city'],
         'pickupAddress': state['pickupAddress'],
-        'latitude': state['latitude'],
-        'longitude': state['longitude'],
-        'locationAddress': state['locationAddress'],
         'userId': FirebaseAuth.instance.currentUser?.uid,
         'status': 'pending',
         'date': FieldValue.serverTimestamp(),
@@ -66,17 +46,13 @@ class SellFormCubit extends Cubit<Map<String, dynamic>> {
         'kilograms': 0.0,
         'price': 0.0,
         'pickupDate': DateTime.now(),
-        'latitude': 0.0,
-        'longitude': 0.0,
-        'locationAddress': '',
       });
       print('Form data submitted successfully!');
 
-      // Navigate to SellDone screen after successful submission
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const SellDone(userName: '', user: null), // Pass empty values
+          builder: (context) => const SellDone(userName: '', user: null),
         ),
       );
     } catch (error) {
@@ -122,10 +98,8 @@ class _UserSellFormState extends State<UserSellForm> {
   String _selectedMaterial = 'Plastic';
   double _maxStock = 0.0;
   bool _loadingStock = true;
-  GoogleMapController? _mapController;
-  Set<Marker> _markers = {};
-  LatLng _selectedLocation = const LatLng(0, 0);
-  bool _isLoadingLocation = false;
+  double _basePrice = 100.0; // Default price
+  bool _loadingPrice = true;
 
   @override
   void initState() {
@@ -134,7 +108,7 @@ class _UserSellFormState extends State<UserSellForm> {
       _selectedMaterial = widget.initialMaterial!;
     }
     _fetchStock();
-    _getCurrentLocation();
+    _fetchPriceConfig();
   }
 
   Future<void> _fetchStock() async {
@@ -160,6 +134,49 @@ class _UserSellFormState extends State<UserSellForm> {
     });
   }
 
+  Future<void> _fetchPriceConfig() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('config')
+          .doc('prices')
+          .get();
+
+      if (doc.exists) {
+        final newBasePrice = (doc.data()?['base_price_per_kg'] as num?)?.toDouble() ?? 100.0;
+        setState(() {
+          _basePrice = newBasePrice;
+          _loadingPrice = false;
+        });
+        // Update the cubit's price to the base price
+        context.read<SellFormCubit>().updateField('price', newBasePrice);
+      } else {
+        // Initialize the price config if it doesn't exist
+        await FirebaseFirestore.instance
+            .collection('config')
+            .doc('prices')
+            .set({
+          'base_price_per_kg': 100.0,
+          'currency': 'EGP',
+          'last_updated': FieldValue.serverTimestamp(),
+        });
+        setState(() {
+          _basePrice = 100.0;
+          _loadingPrice = false;
+        });
+        // Update the cubit's price to the default base price
+        context.read<SellFormCubit>().updateField('price', 100.0);
+      }
+    } catch (e) {
+      print('Error fetching price config: $e');
+      setState(() {
+        _basePrice = 100.0;
+        _loadingPrice = false;
+      });
+      // Update the cubit's price to the default base price
+      context.read<SellFormCubit>().updateField('price', 100.0);
+    }
+  }
+
   void _onMaterialChanged(String? value) {
     if (value == null) return;
     setState(() {
@@ -179,68 +196,6 @@ class _UserSellFormState extends State<UserSellForm> {
     if (picked != null && picked != cubit.state['pickupDate']) {
       cubit.updateField('pickupDate', picked);
     }
-  }
-
-  Future<void> _getCurrentLocation() async {
-    setState(() => _isLoadingLocation = true);
-    try {
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          throw 'Location permission denied';
-        }
-      }
-
-      Position position = await Geolocator.getCurrentPosition();
-      _selectedLocation = LatLng(position.latitude, position.longitude);
-      _updateMarker(_selectedLocation);
-      if (_mapController != null) {
-        _mapController!.animateCamera(
-          CameraUpdate.newLatLngZoom(_selectedLocation, 15),
-        );
-      }
-      _updateLocationAddress(_selectedLocation);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error getting location: $e')),
-      );
-    } finally {
-      setState(() => _isLoadingLocation = false);
-    }
-  }
-
-  Future<void> _updateLocationAddress(LatLng position) async {
-    try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      );
-      if (placemarks.isNotEmpty) {
-        Placemark place = placemarks[0];
-        String address = '${place.street}, ${place.locality}, ${place.country}';
-        context.read<SellFormCubit>().updateLocation(
-          position.latitude,
-          position.longitude,
-          address,
-        );
-      }
-    } catch (e) {
-      print('Error getting address: $e');
-    }
-  }
-
-  void _updateMarker(LatLng position) {
-    setState(() {
-      _markers = {
-        Marker(
-          markerId: const MarkerId('selected_location'),
-          position: position,
-          infoWindow: const InfoWindow(title: 'Pickup Location'),
-        ),
-      };
-      _selectedLocation = position;
-    });
   }
 
   @override
@@ -278,249 +233,229 @@ class _UserSellFormState extends State<UserSellForm> {
         ),
         centerTitle: true,
       ),
-      body: _loadingStock
+      body: _loadingStock || _loadingPrice
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(12.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-                    // Material is now set automatically; dropdown removed
-              const Text(
-                'Set Weight to be Sold:',
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    const Text(
+                      'Set Weight to be Sold:',
                       style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
                         const Text('0kg', style: TextStyle(fontSize: 14.0)),
                         Text('Max: ${_maxStock.toStringAsFixed(1)}kg',
                             style: const TextStyle(fontSize: 10.0, color: Colors.grey)),
-                ],
-              ),
-              Slider(
+                      ],
+                    ),
+                    Slider(
                       value: (cubit.state['kilograms'] ?? 0.0).clamp(0.0, _maxStock),
-                min: 0,
+                      min: 0,
                       max: _maxStock > 0 ? _maxStock : 1,
                       divisions: _maxStock > 0 ? _maxStock.round() : 1,
-                label: '${(cubit.state['kilograms'] ?? 0.0).round()}kg',
-                activeColor: const Color(0xFF26A69A),
-                inactiveColor: Colors.grey[300],
+                      label: '${(cubit.state['kilograms'] ?? 0.0).round()}kg',
+                      activeColor: const Color(0xFF26A69A),
+                      inactiveColor: Colors.grey[300],
                       onChanged: _maxStock > 0
                           ? (double newWeight) {
-                  cubit.updateField('kilograms', newWeight);
+                              cubit.updateField('kilograms', newWeight);
                             }
                           : null,
-              ),
-              Center(
-                child: Container(
-                        padding: const EdgeInsets.all(6.0),
-                  decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(6.0),
-                    color: Colors.grey[200],
-                  ),
-                  child: Text(
-                      '${(cubit.state['kilograms'] ?? 0.0).round()}kg',
-                            style: const TextStyle(fontSize: 16.0)),
-                ),
-              ),
-                    const SizedBox(height: 16.0),
-              const Text(
-                'Set Price/Kg:',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                        const Text('\$0', style: TextStyle(fontSize: 14.0)),
-                  const Text('\$1000',
-                            style: TextStyle(fontSize: 10.0, color: Colors.grey)),
-                ],
-              ),
-              Slider(
-                value: cubit.state['price'] ?? 0.0,
-                min: 0,
-                max: 1000,
-                divisions: 1000,
-                label: '\$${(cubit.state['price'] ?? 0.0).round()}',
-                activeColor: const Color(0xFF26A69A),
-                inactiveColor: Colors.grey[300],
-                onChanged: (double newPrice) {
-                  cubit.updateField('price', newPrice);
-                },
-              ),
-              Center(
-                child: Container(
-                        padding: const EdgeInsets.all(6.0),
-                  decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(6.0),
-                    color: Colors.grey[200],
-                  ),
-                  child: Text('\$${(cubit.state['price'] ?? 0.0).round()}',
-                            style: const TextStyle(fontSize: 16.0)),
-                ),
-              ),
-                    const SizedBox(height: 8.0),
-              const Text(
-                '*Recommended Price is between \$500 and \$800 per Kg for best deals.',
-                      style: TextStyle(fontSize: 10.0, color: Colors.grey),
-              ),
-                    const SizedBox(height: 16.0),
-              TextFormField(
-                readOnly: true,
-                onTap: () => _selectDate(context),
-                decoration: InputDecoration(
-                  labelText: 'Pick a Date For Pickup',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                  suffixIcon: const Icon(Icons.calendar_today_outlined),
-                ),
-                controller: TextEditingController(
-                  text: cubit.state['pickupDate'] != null
-                      ? DateFormat('yyyy-MM-dd').format(cubit.state['pickupDate'])
-                      : DateFormat('yyyy-MM-dd').format(DateTime.now()),
-                ),
-              ),
-                    const SizedBox(height: 12.0),
-              TextFormField(
-                controller: _phoneNumberController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: 'Phone Number',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your phone number';
-                  }
-                  return null;
-                },
-                onChanged: (value) => cubit.updateField('phoneNumber', value),
-              ),
-                    const SizedBox(height: 12.0),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _districtController,
-                      decoration: InputDecoration(
-                        labelText: 'District',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your district';
-                        }
-                        return null;
-                      },
-                      onChanged: (value) => cubit.updateField('district', value),
                     ),
-                  ),
-                        const SizedBox(width: 12.0),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _cityController,
-                      decoration: InputDecoration(
-                        labelText: 'City',
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your city';
-                        }
-                        return null;
-                      },
-                      onChanged: (value) => cubit.updateField('city', value),
-                    ),
-                  ),
-                ],
-              ),
-                    const SizedBox(height: 12.0),
-              TextFormField(
-                controller: _pickupAddressController,
-                maxLines: 2,
-                decoration: InputDecoration(
-                  labelText: 'Pickup Address',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your pickup address';
-                  }
-                  return null;
-                },
-                onChanged: (value) =>
-                    cubit.updateField('pickupAddress', value),
-              ),
-              const SizedBox(height: 16.0),
-              const Text(
-                'Select Location on Map:',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
-              ),
-              const SizedBox(height: 8.0),
-              Container(
-                height: 200,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: _isLoadingLocation
-                    ? const Center(child: CircularProgressIndicator())
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(8.0),
-                        child: GoogleMap(
-                          initialCameraPosition: CameraPosition(
-                            target: _selectedLocation,
-                            zoom: 15,
-                          ),
-                          markers: _markers,
-                          onMapCreated: (controller) => _mapController = controller,
-                          onTap: (LatLng position) {
-                            _updateMarker(position);
-                            _updateLocationAddress(position);
-                          },
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(6.0),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6.0),
+                          color: Colors.grey[200],
                         ),
+                        child: Text(
+                          '${(cubit.state['kilograms'] ?? 0.0).round()}kg',
+                          style: const TextStyle(fontSize: 16.0)),
                       ),
-              ),
-              const SizedBox(height: 8.0),
-              Text(
-                'Selected Location: ${cubit.state['locationAddress'] ?? 'Not selected'}',
-                style: const TextStyle(fontSize: 12.0, color: Colors.grey),
-              ),
-              const SizedBox(height: 24.0),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      try {
-                        await cubit.submitForm(context);
-                      } catch (error) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Failed to submit offer: $error'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF26A69A),
-                    foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12.0),
-                    shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
                     ),
-                  ),
-                        child: const Text('Sell', style: TextStyle(fontSize: 16.0)),
+                    const SizedBox(height: 16.0),
+                    const Text(
+                      'Set Price/Kg:',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('${(_basePrice * 0.7).round()} EGP', 
+                            style: const TextStyle(fontSize: 14.0)),
+                        Text('${(_basePrice * 1.3).round()} EGP',
+                            style: const TextStyle(fontSize: 10.0, color: Colors.grey)),
+                      ],
+                    ),
+                    Slider(
+                      value: (cubit.state['price'] ?? _basePrice).clamp(_basePrice * 0.7, _basePrice * 1.3),
+                      min: _basePrice * 0.7,
+                      max: _basePrice * 1.3,
+                      divisions: ((_basePrice * 0.6).round()),
+                      label: '${(cubit.state['price'] ?? _basePrice).round()} EGP',
+                      activeColor: const Color(0xFF26A69A),
+                      inactiveColor: Colors.grey[300],
+                      onChanged: (double newPrice) {
+                        cubit.updateField('price', newPrice);
+                      },
+                    ),
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(6.0),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6.0),
+                          color: Colors.grey[200],
+                        ),
+                        child: Text('${(cubit.state['price'] ?? _basePrice).round()} EGP',
+                            style: const TextStyle(fontSize: 16.0)),
+                      ),
+                    ),
+                    const SizedBox(height: 8.0),
+                    Text(
+                      '*Recommended Price is between ${(_basePrice * 0.9).round()} and ${(_basePrice * 1.1).round()} EGP per Kg for best deals.',
+                      style: const TextStyle(fontSize: 10.0, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16.0),
+                    TextFormField(
+                      readOnly: true,
+                      onTap: () => _selectDate(context),
+                      decoration: InputDecoration(
+                        labelText: 'Pick a Date For Pickup',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                        suffixIcon: const Icon(Icons.calendar_today_outlined),
+                      ),
+                      controller: TextEditingController(
+                        text: cubit.state['pickupDate'] != null
+                            ? DateFormat('yyyy-MM-dd').format(cubit.state['pickupDate'])
+                            : DateFormat('yyyy-MM-dd').format(DateTime.now()),
+                      ),
+                    ),
+                    const SizedBox(height: 12.0),
+                    TextFormField(
+                      controller: _phoneNumberController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        labelText: 'Phone Number',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your phone number';
+                        }
+                        return null;
+                      },
+                      onChanged: (value) => cubit.updateField('phoneNumber', value),
+                    ),
+                    const SizedBox(height: 12.0),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _districtController,
+                            decoration: InputDecoration(
+                              labelText: 'District',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your district';
+                              }
+                              return null;
+                            },
+                            onChanged: (value) => cubit.updateField('district', value),
+                          ),
+                        ),
+                        const SizedBox(width: 12.0),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _cityController,
+                            decoration: InputDecoration(
+                              labelText: 'City',
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your city';
+                              }
+                              return null;
+                            },
+                            onChanged: (value) => cubit.updateField('city', value),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12.0),
+                    TextFormField(
+                      controller: _pickupAddressController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: 'Pickup Address',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8.0)),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your pickup address';
+                        }
+                        return null;
+                      },
+                      onChanged: (value) =>
+                          cubit.updateField('pickupAddress', value),
+                    ),
+                    const SizedBox(height: 24.0),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (_formKey.currentState!.validate()) {
+                            // Show confirmation screen instead of submitting directly
+                            final confirmed = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SellConfirmationScreen(
+                                  formData: {
+                                    ...cubit.state,
+                                    'material': _selectedMaterial,
+                                  },
+                                ),
+                              ),
+                            );
+                            
+                            if (confirmed == true) {
+                              try {
+                                await cubit.submitForm(context);
+                              } catch (error) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to submit offer: $error'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF26A69A),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                        ),
+                        child: const Text('Review Offer', style: TextStyle(fontSize: 16.0)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
       bottomNavigationBar: Container(
         margin: const EdgeInsets.all(10),
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -534,7 +469,7 @@ class _UserSellFormState extends State<UserSellForm> {
             _buildNavBarItem(
               icon: Icons.dashboard,
               label: 'Stock',
-              isSelected: false, // Set to true if this is the Stock page
+              isSelected: false,
               onTap: () {
                 _navigateWithFadeThrough(BinOwnerStockScreen(
                   userName: widget.userName,
@@ -546,7 +481,7 @@ class _UserSellFormState extends State<UserSellForm> {
             _buildNavBarItem(
               icon: Icons.home,
               label: 'Home',
-              isSelected: false, // Set to true if this is the Home page
+              isSelected: false,
               onTap: () {
                 _navigateWithFadeThrough(BinOwnerHomeScreen(currentIndex: 1));
               },
@@ -554,7 +489,7 @@ class _UserSellFormState extends State<UserSellForm> {
             _buildNavBarItem(
               icon: Icons.person,
               label: 'Profile',
-              isSelected: false, // Set to true if this is the Profile page
+              isSelected: false,
               onTap: () {
                 if (widget.user != null) {
                   _navigateWithFadeThrough(BinOwnerProfile(user: widget.user!));
