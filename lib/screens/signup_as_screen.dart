@@ -10,59 +10,54 @@ class SignUpAs extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: Container(
-          constraints: const BoxConstraints.expand(),
           color: const Color(0xFFFFFFFF),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Removed the Expanded and SingleChildScrollView widgets
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.only(top: 80, bottom: 52),
-                    decoration: const BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage( // Changed the image source to the new path
-                          "assets/png/leftcornergreen.png",
-                        ),
-                        fit: BoxFit.cover,
-                        alignment: Alignment.topCenter,
+          height: MediaQuery.of(context).size.height,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.only(top: 80, bottom: 52),
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(
+                        "assets/png/leftcornergreen.png",
                       ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 150, left: 20),
-                          width: 500,
-                          child: const Text(
-                            "\nSign Up\n",
-                            style: TextStyle(
-                              color: Color(0xFFFFFFFF),
-                              fontFamily: 'Roboto Flex',
-                              fontSize: 70,
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 20.0), // Added padding to move "as" down
-                          child: const Center(
-                            child: Text(
-                              "as",
-                              style: TextStyle(
-                                color: Color(0xFF00917C),
-                                fontSize: 50,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                      ],
+                      fit: BoxFit.cover,
+                      alignment: Alignment.topCenter,
                     ),
                   ),
-                  const SizedBox(height: 50),
-                  Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 150, left: 20),
+                        width: 500,
+                        child: const Text(
+                          "\nSign Up\n",
+                          style: TextStyle(
+                            color: Color(0xFFFFFFFF),
+                            fontFamily: 'Roboto Flex',
+                            fontSize: 70,
+                          ),
+                        ),
+                      ),
+                      const Center(
+                        child: Text(
+                          "as",
+                          style: TextStyle(
+                            color: Color(0xFF00917C),
+                            fontSize: 50,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 50),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       SizedBox(
@@ -74,7 +69,7 @@ class SignUpAs extends StatelessWidget {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF184D47),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(20),
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
@@ -88,7 +83,7 @@ class SignUpAs extends StatelessWidget {
                         ),
                       ),
                       SizedBox(
-                        width: 161,
+                        width: 166,
                         child: ElevatedButton(
                           onPressed: () {
                             Navigator.of(context).pushNamed('/recycling_company_signup');
@@ -96,52 +91,59 @@ class SignUpAs extends StatelessWidget {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF184D47),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            padding: const EdgeInsets.symmetric(vertical: 19),
                           ),
                           child: const Text(
                             "Recycling Company",
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 18,
+                              fontSize: 15
+
+                              ,
                             ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 40),
-                  Center(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const LoginScreen()),
-                          );
-                        },
-                        child: RichText(
-                            text: const TextSpan(
-                              text: "Already Have an Account? ",
-                              style: TextStyle(
-                                color: Color(0xFF141313),
-                                fontSize: 15,
-                              ),
-                              children: <TextSpan>[
-                                TextSpan(
-                                  text: 'login',
-                                  style: TextStyle(
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ],
-                            )),
-                      )
+                ),
+                const SizedBox(height: 40),
+                Center(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                      );
+                    },
+                    child: RichText(
+                      text: const TextSpan(
+                        text: "Already Have an Account? ",
+                        style: TextStyle(
+                          color: Color(0xFF141313),
+                          fontSize: 15,
+                        ),
+                        children: <TextSpan>[
+                          TextSpan(
+                            text: 'login',
+                            style: TextStyle(
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),

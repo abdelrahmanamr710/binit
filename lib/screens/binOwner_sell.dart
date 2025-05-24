@@ -28,25 +28,122 @@ class SellFormCubit extends Cubit<Map<String, dynamic>> {
   Future<void> submitForm(BuildContext context) async {
     await Firebase.initializeApp();
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (userId == null) {
+      throw Exception('User not logged in');
+    }
+
+    // Start a batch write
+    final WriteBatch batch = firestore.batch();
 
     try {
-      await firestore.collection('sell_offers').add({
-        'kilograms': state['kilograms'],
+      // 1. Get all bins owned by the user
+      final binsSnapshot = await firestore
+          .collection('registered_bins')
+          .where('owners', arrayContains: userId)
+          .get();
+
+      if (binsSnapshot.docs.isEmpty) {
+        throw Exception('No bins found for user');
+      }
+
+      // 2. Calculate total weight and prepare for deduction
+      double totalWeight = 0;
+      final material = state['material'] as String;
+      final weightToDeduct = state['kilograms'] as double;
+      
+      final bins = binsSnapshot.docs.map((doc) {
+        final data = doc.data();
+        final binWeight = material.toLowerCase() == 'plastic'
+            ? (data['plastic_total_weight'] as num?)?.toDouble() ?? 0.0
+            : (data['metal_total_weight'] as num?)?.toDouble() ?? 0.0;
+        totalWeight += binWeight;
+        return {
+          'ref': doc.reference,
+          'weight': binWeight,
+          'data': data,
+        };
+      }).toList();
+
+      // 3. Verify if there's enough weight
+      if (totalWeight < weightToDeduct) {
+        throw Exception('Insufficient stock available. Available: ${totalWeight}kg, Required: ${weightToDeduct}kg');
+      }
+
+      // 4. Deduct weight proportionally from each bin
+      for (final bin in bins) {
+        final binWeight = bin['weight'] as double;
+        if (binWeight > 0) {
+          final proportion = binWeight / totalWeight;
+          final weightToDeductFromBin = weightToDeduct * proportion;
+          
+          final updateField = material.toLowerCase() == 'plastic'
+              ? 'plastic_total_weight'
+              : 'metal_total_weight';
+          
+          final binData = bin['data'] as Map<String, dynamic>;
+          final currentWeight = material.toLowerCase() == 'plastic'
+              ? (binData['plastic_total_weight'] as num).toDouble()
+              : (binData['metal_total_weight'] as num).toDouble();
+
+          final updates = {
+            updateField: currentWeight - weightToDeductFromBin,
+            'lastUpdated': FieldValue.serverTimestamp(),
+            material.toLowerCase() == 'plastic' ? 'plastic_emptied' : 'metal_emptied': false,
+            material.toLowerCase() == 'plastic' ? 'plastic_last_emptied' : 'metal_last_emptied': FieldValue.serverTimestamp(),
+          };
+
+          batch.update(bin['ref'] as DocumentReference, updates);
+        }
+      }
+
+      // 5. Create the sell offer document
+      final offerRef = firestore.collection('sell_offers').doc();
+      batch.set(offerRef, {
+        'kilograms': weightToDeduct,
         'price': state['price'],
         'pickupDate': state['pickupDate'],
         'phoneNumber': state['phoneNumber'],
         'district': state['district'],
         'city': state['city'],
         'pickupAddress': state['pickupAddress'],
-        'userId': FirebaseAuth.instance.currentUser?.uid,
+        'userId': userId,
         'status': 'pending',
         'date': FieldValue.serverTimestamp(),
+        'material': material,
       });
+
+      // 6. Create a weight deduction record
+      final deductionRef = firestore.collection('weight_deductions').doc();
+      batch.set(deductionRef, {
+        'offerId': offerRef.id,
+        'userId': userId,
+        'material': material,
+        'totalWeightDeducted': weightToDeduct,
+        'timestamp': FieldValue.serverTimestamp(),
+        'bins': bins.map((bin) {
+          final binWeight = bin['weight'] as double;
+          return {
+            'binId': (bin['ref'] as DocumentReference).id,
+            'weightBefore': binWeight,
+            'deductedWeight': binWeight > 0
+                ? (weightToDeduct * (binWeight / totalWeight))
+                : 0,
+          };
+        }).toList(),
+      });
+
+      // 7. Commit all changes
+      await batch.commit();
+
+      // 8. Reset form state
       emit({
         'kilograms': 0.0,
         'price': 0.0,
         'pickupDate': DateTime.now(),
       });
+
       print('Form data submitted successfully!');
 
       Navigator.pushReplacement(
@@ -57,6 +154,12 @@ class SellFormCubit extends Cubit<Map<String, dynamic>> {
       );
     } catch (error) {
       print('Error submitting form: $error');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
       throw error;
     }
   }
@@ -106,6 +209,8 @@ class _UserSellFormState extends State<UserSellForm> {
     super.initState();
     if (widget.initialMaterial != null) {
       _selectedMaterial = widget.initialMaterial!;
+      // Set initial material in cubit state
+      context.read<SellFormCubit>().updateField('material', _selectedMaterial);
     }
     _fetchStock();
     _fetchPriceConfig();
@@ -182,6 +287,8 @@ class _UserSellFormState extends State<UserSellForm> {
     setState(() {
       _selectedMaterial = value;
     });
+    // Update material in cubit state when changed
+    context.read<SellFormCubit>().updateField('material', value);
     _fetchStock();
   }
 

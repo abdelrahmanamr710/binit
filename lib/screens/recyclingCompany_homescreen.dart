@@ -129,18 +129,107 @@ class _RecyclingCompanyHomeScreenState
         final userName = userData['name'] ?? userData['email'] ?? 'Company';
 
         return Scaffold(
-          appBar: AppBar(
+          backgroundColor: Colors.white,
+          body: AnnotatedRegion<SystemUiOverlayStyle>(
+            value: const SystemUiOverlayStyle(
+              statusBarColor: Colors.transparent,
+              statusBarIconBrightness: Brightness.dark,
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16.0, 24.0, 16.0, 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A524F),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Text(
+                        'Welcome, $userName',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Expanded(
+                      child: StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('sell_offers')
+                            .where('status', isEqualTo: 'pending')
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Shimmer.fromColors(
+                              baseColor: Colors.grey[300]!,
+                              highlightColor: Colors.grey[100]!,
+                              child: ListView.builder(
+                                itemCount: 3,
+                                itemBuilder: (context, i) => Container(
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
 
-            backgroundColor: const Color(0xFF03342F),
-            elevation: 0,
-            automaticallyImplyLeading: false,
-            title: const SizedBox.shrink(),
-            systemOverlayStyle: const SystemUiOverlayStyle(
-              statusBarColor: Color(0xFF03342F),
-              statusBarIconBrightness: Brightness.light,
+                          final offers = snapshot.data?.docs ?? [];
+                          if (offers.isEmpty) {
+                            return const Center(child: Text("No pending sell offers."));
+                          }
+
+                          return StatefulBuilder(
+                            builder: (context, setStateSB) {
+                              return ListView.builder(
+                                itemCount: offers.length,
+                                itemBuilder: (context, index) {
+                                  final doc = offers[index];
+                                  final offer = doc.data() as Map<String, dynamic>;
+                                  final offerId = doc.id;
+                                  if (_dismissedOfferIds.contains(offerId)) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  if (_pendingDismissIds.contains(offerId)) {
+                                    // Trigger dismiss after build
+                                    Future.delayed(Duration(milliseconds: 100), () {
+  setStateSB(() {
+    _dismissedOfferIds.add(offerId);
+    _pendingDismissIds.remove(offerId);
+  });
+});
+                                  }
+                                  return Dismissible(
+                                    key: Key(offerId + (_pendingDismissIds.contains(offerId) ? '_pending' : '')),
+                                    direction: DismissDirection.startToEnd,
+                                    onDismissed: (_) {
+                                      setStateSB(() {
+                                        _dismissedOfferIds.add(offerId);
+                                        _pendingDismissIds.remove(offerId);
+                                      });
+                                    },
+                                    child: _buildOfferCard(offer, offerId, context, setStateSB),
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-          backgroundColor: Colors.white,
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
               color: const Color(0xFF03342F),
@@ -148,8 +237,7 @@ class _RecyclingCompanyHomeScreenState
             ),
             margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Padding(
-              padding:
-              const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
+              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
               child: Row(
                 children: <Widget>[
                   Expanded(
@@ -179,111 +267,6 @@ class _RecyclingCompanyHomeScreenState
                 ],
               ),
             ),
-          ),
-          body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A524F),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0, vertical: 12.0),
-                          child: Text(
-                            'Welcome, $userName',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  // You can add your specific content here below the header
- Expanded(
-                    child: StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('sell_offers')
-                          .where('status', isEqualTo: 'pending')
-                          .snapshots(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return Shimmer.fromColors(
-                            baseColor: Colors.grey[300]!,
-                            highlightColor: Colors.grey[100]!,
-                            child: ListView.builder(
-                              itemCount: 3,
-                              itemBuilder: (context, i) => Container(
-                                margin: const EdgeInsets.only(bottom: 16),
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-
-                        final offers = snapshot.data?.docs ?? [];
-                        if (offers.isEmpty) {
-                          return const Center(child: Text("No pending sell offers."));
-                        }
-
-                        return StatefulBuilder(
-                          builder: (context, setStateSB) {
-                            return ListView.builder(
-                              itemCount: offers.length,
-                              itemBuilder: (context, index) {
-                                final doc = offers[index];
-                                final offer = doc.data() as Map<String, dynamic>;
-                                final offerId = doc.id;
-                                if (_dismissedOfferIds.contains(offerId)) {
-                                  return const SizedBox.shrink();
-                                }
-                                if (_pendingDismissIds.contains(offerId)) {
-                                  // Trigger dismiss after build
-                                  Future.delayed(Duration(milliseconds: 100), () {
-  setStateSB(() {
-    _dismissedOfferIds.add(offerId);
-    _pendingDismissIds.remove(offerId);
-  });
-});
-                                }
-                                return Dismissible(
-                                  key: Key(offerId + (_pendingDismissIds.contains(offerId) ? '_pending' : '')),
-                                  direction: DismissDirection.startToEnd,
-                                  onDismissed: (_) {
-                                    setStateSB(() {
-                                      _dismissedOfferIds.add(offerId);
-                                      _pendingDismissIds.remove(offerId);
-                                    });
-                                  },
-                                  child: _buildOfferCard(offer, offerId, context, setStateSB),
-                                );
-                              },
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
           ),
         );
       },
@@ -321,33 +304,152 @@ class _RecyclingCompanyHomeScreenState
 
   // Helper to build the offer card
   Widget _buildOfferCard(Map<String, dynamic> offer, String offerId, BuildContext context, void Function(void Function()) setStateSB) {
+    final materialType = offer['material'] as String? ?? 'N/A';
+    final materialIcon = materialType.toLowerCase() == 'plastic' 
+        ? Icons.local_drink
+        : Icons.build;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 10),
+      constraints: const BoxConstraints(
+        minHeight: 150,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFFEFF5F4),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header: Material Type and Price
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Material Type with larger icon
+                Row(
+                  children: [
+                    Icon(materialIcon, color: const Color(0xFF03342F), size: 33),
+                    const SizedBox(width: 10),
+                    Text(
+                      materialType,
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF03342F),
+                      ),
+                    ),
+                  ],
+                ),
+                // Price information
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text(
+                      "Price:",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF666666),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "EGP ${offer['price']}",
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF03342F),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            
+            // Amount section with divider
+            const Divider(height: 1, color: Color(0xFFE0E0E0)),
+            const SizedBox(height: 14),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("${offer['kilograms']} KG", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Text("EGP ${offer['price']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF03342F)))
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Amount",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF666666),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${(offer['kilograms'] as num).toStringAsFixed(2)} KG",
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF03342F),
+                      ),
+                    ),
+                  ],
+                ),
+                // Location information
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Row(
+                      children: [
+                        Icon(Icons.location_on_outlined, 
+                          color: Color(0xFF666666), 
+                          size: 18
+                        ),
+                        SizedBox(width: 2),
+                        Text(
+                          "Location",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Color(0xFF666666),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${offer['city']}, ${offer['district']}",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF03342F),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text("${offer['city']}, ${offer['district']}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
+            const SizedBox(height: 14),
+            const Divider(height: 1, color: Color(0xFFE0E0E0)),
+            const SizedBox(height: 14),
+            
+            // View Details Button - Centered
+            Center(
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF03342F),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(horizontal: 38, vertical: 13),
                 ),
                 onPressed: () async {
                   final dismissedOfferId = await Navigator.push(
@@ -364,10 +466,14 @@ class _RecyclingCompanyHomeScreenState
                 },
                 child: const Text(
                   "View Details",
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -376,3 +482,4 @@ class _RecyclingCompanyHomeScreenState
       .slideY(begin: 0.1, end: 0, duration: 400.ms, delay: 0.ms);
   }
 }
+

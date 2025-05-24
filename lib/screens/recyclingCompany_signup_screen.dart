@@ -155,7 +155,7 @@ class _RecyclingCompanySignupScreenState
                             'Sign Up as Recycling Company',
                             style: TextStyle(
                               fontFamily: 'Roboto',
-                              fontSize: 45,
+                              fontSize: 40,
                               color: Colors.white,
                             ),
                             textAlign: TextAlign.right,

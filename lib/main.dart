@@ -50,6 +50,7 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     // Initialize the user credentials cache service
     final userCredentialsCacheService = UserCredentialsCacheService();
+    final notificationService = NotificationService();
     
     // Check if the cache is valid
     final isCacheValid = await userCredentialsCacheService.isCacheValid();
@@ -60,59 +61,50 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     
     // Check if the user is a bin owner
     final isBinOwner = await userCredentialsCacheService.isCachedUserBinOwner();
-    
+    if (!isBinOwner) {
+      print("User is not a bin owner, skipping notification");
+      return;
+    }
+
     // Handle different message types
     switch (messageType) {
       case 'bin_level_update':
-        final binName = data['binName'] ?? 'Unknown';
-        final material = data['material'] ?? 'Unknown';
-        final level = data['level'] ?? '0';
-        final binId = data['binId'] ?? '';
-        
-        // Only show bin level updates to bin owners who own this bin
-        if (isBinOwner) {
-          if (binId.isNotEmpty) {
-            // Check if this bin is registered to the cached user
-            final isBinRegistered = await userCredentialsCacheService.isBinRegisteredToCachedUser(binId);
-            if (!isBinRegistered) {
-              print("Bin $binId is not registered to the cached user, skipping notification");
-              return;
-            }
-          }
-          
-          await NotificationService().showBinLevelUpdate(
-            binName: binName,
-            material: material,
-            level: level,
-          );
+        // Check if bin level notifications are enabled
+        if (!await notificationService.areNotificationsEnabledForType('bin_level')) {
+          print("Bin level notifications are disabled");
+          return;
         }
+        await notificationService.showBinLevelUpdate(
+          binName: data['binName'] ?? 'Unknown',
+          material: data['material'] ?? 'Unknown',
+          level: data['level'] ?? '0',
+          binId: data['binId'],
+        );
         break;
         
       case 'offer_accepted':
-        final company = data['company'] ?? 'Unknown';
-        final kilos = num.tryParse(data['kilos'] ?? '0') ?? 0;
-        
-        // Only show offer accepted notifications to bin owners
-        if (isBinOwner) {
-          await NotificationService().showOfferAccepted(
-            company: company,
-            kilos: kilos,
-          );
+        // Check if offer notifications are enabled
+        if (!await notificationService.areNotificationsEnabledForType('offer')) {
+          print("Offer notifications are disabled");
+          return;
         }
+        await notificationService.showOfferAccepted(
+          company: data['company'] ?? 'Unknown',
+          kilos: num.tryParse(data['kilos'] ?? '0') ?? 0,
+        );
         break;
         
       default:
-        // For unknown message types, show a generic notification
+        // For system notifications
+        if (!await notificationService.areNotificationsEnabledForType('system')) {
+          print("System notifications are disabled");
+          return;
+        }
         if (message.notification != null) {
-          final title = message.notification!.title ?? 'New Notification';
-          final body = message.notification!.body ?? 'You have a new notification';
-          
-          // Use notification service to show the notification
-          print("Showing generic notification: $title - $body");
-          await NotificationService().showBinLevelUpdate(
-            binName: 'Bin-It',
-            material: 'System',
-            level: 'notification received',
+          await notificationService.showSystemNotification(
+            title: message.notification!.title ?? 'New Notification',
+            message: message.notification!.body ?? 'You have a new notification',
+            data: data,
           );
         }
     }

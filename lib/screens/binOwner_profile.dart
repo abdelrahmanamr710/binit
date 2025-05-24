@@ -12,6 +12,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import 'package:binit/screens/binOwner_orders.dart';
+import 'package:binit/services/notification_service.dart';
 
 class BinOwnerProfile extends StatefulWidget {
   final UserModel user;
@@ -132,14 +133,24 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
           _offerNotifications = data['offerNotifications'] ?? true;
           _systemNotifications = data['systemNotifications'] ?? true;
         });
+      } else {
+        // Create default preferences if they don't exist
+        await _updateNotificationPreferences();
       }
     } catch (e) {
       print('Error loading preferences: $e');
+      // Set default values if there's an error
+      setState(() {
+        _binLevelUpdates = true;
+        _offerNotifications = true;
+        _systemNotifications = true;
+      });
     }
   }
 
   Future<void> _updateNotificationPreferences() async {
     try {
+      // Update Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(widget.user.uid)
@@ -151,13 +162,24 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
         'systemNotifications': _systemNotifications,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      // Update local notification settings
+      final notificationService = NotificationService();
+      await notificationService.setBackgroundNotificationsEnabled(_systemNotifications);
       
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preferences updated successfully')),
+        const SnackBar(
+          content: Text('Notification preferences updated'),
+          duration: Duration(seconds: 2),
+        ),
       );
     } catch (e) {
+      print('Error updating preferences: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating preferences: $e')),
+        SnackBar(
+          content: Text('Error updating preferences: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -268,22 +290,23 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             // Account Section
             Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+              margin: const EdgeInsets.only(bottom: 12.0),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+              elevation: 2,
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(14.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.person_outline, color: Color(0xFF1A524F)),
+                        const Icon(Icons.person_outline, color: Color(0xFF1A524F), size: 22),
                         const SizedBox(width: 8),
                         const Text(
                           'Account',
@@ -295,12 +318,12 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.edit, color: Color(0xFF1A524F)),
+                      leading: const Icon(Icons.edit, color: Color(0xFF1A524F), size: 22),
                       title: const Text('Edit Profile'),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(Icons.chevron_right, size: 22),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -317,16 +340,17 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
 
             // Orders Section
             Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+              margin: const EdgeInsets.only(bottom: 12.0),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+              elevation: 2,
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(14.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.shopping_bag_outlined, color: Color(0xFF1A524F)),
+                        const Icon(Icons.shopping_bag_outlined, color: Color(0xFF1A524F), size: 22),
                         const SizedBox(width: 8),
                         const Text(
                           'Orders',
@@ -338,12 +362,12 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.history, color: Color(0xFF1A524F)),
+                      leading: const Icon(Icons.history, color: Color(0xFF1A524F), size: 22),
                       title: const Text('View Orders Status'),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(Icons.chevron_right, size: 22),
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -363,13 +387,26 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
               icon: Icons.notifications,
               child: Card(
                 elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                margin: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
                   child: Column(
                     children: [
                       SwitchListTile(
-                        title: const Text('Bin Level Updates'),
+                        title: const Text(
+                          'Bin Level Updates',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          'Get notified when your bins are getting full',
+                          style: TextStyle(fontSize: 14,color: Colors.grey),
+
+
+                        ),
                         value: _binLevelUpdates,
                         onChanged: (value) {
                           setState(() => _binLevelUpdates = value);
@@ -377,8 +414,19 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                         },
                         activeColor: const Color(0xFF1A524F),
                       ),
+                      const Divider(height: 1),
                       SwitchListTile(
-                        title: const Text('Offer Notifications'),
+                        title: const Text(
+                          'Offer Notifications',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          'Receive updates about recycling offers',
+                          style: TextStyle(fontSize: 14,color: Colors.grey),
+                        ),
                         value: _offerNotifications,
                         onChanged: (value) {
                           setState(() => _offerNotifications = value);
@@ -386,8 +434,19 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                         },
                         activeColor: const Color(0xFF1A524F),
                       ),
+                      const Divider(height: 1),
                       SwitchListTile(
-                        title: const Text('System Notifications'),
+                        title: const Text(
+                          'System Notifications',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          'Important updates and announcements',
+                          style: TextStyle(fontSize: 14,color: Colors.grey),
+                        ),
                         value: _systemNotifications,
                         onChanged: (value) {
                           setState(() => _systemNotifications = value);
@@ -400,7 +459,7 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
                 ),
               ),
             ),
-            const SizedBox(height: 20.0),
+            const SizedBox(height: 16.0),
 
             // Support Section
             _buildSection(
@@ -408,25 +467,26 @@ class _BinOwnerProfileState extends State<BinOwnerProfile> {
               icon: Icons.support_agent,
               child: Card(
                 elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                margin: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
                 child: Column(
                   children: [
                     ListTile(
-                      leading: const Icon(Icons.help_outline, color: Color(0xFF1A524F)),
+                      leading: const Icon(Icons.help_outline, color: Color(0xFF1A524F), size: 22),
                       title: const Text('Frequently Asked Questions'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () => Navigator.pushNamed(context, '/faq'),
                     ),
-                    const Divider(),
+                    const Divider(height: 1),
                     ListTile(
-                      leading: const Icon(Icons.support_agent, color: Color(0xFF1A524F)),
+                      leading: const Icon(Icons.support_agent, color: Color(0xFF1A524F), size: 22),
                       title: const Text('Contact Support'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () => Navigator.pushNamed(context, '/contact_support'),
                     ),
-                    const Divider(),
+                    const Divider(height: 1),
                     ListTile(
-                      leading: const Icon(Icons.feedback, color: Color(0xFF1A524F)),
+                      leading: const Icon(Icons.feedback, color: Color(0xFF1A524F), size: 22),
                       title: const Text('Submit Feedback'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                       onTap: () {

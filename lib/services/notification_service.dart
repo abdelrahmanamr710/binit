@@ -347,7 +347,48 @@ class NotificationService {
     return await _userCredentialsCacheService.isBinRegisteredToCachedUser(binId);
   }
 
-  Future<void> showOfferAccepted({required String company, required num kilos}) async {
+  // Check if notifications are enabled for specific type
+  Future<bool> areNotificationsEnabledForType(String type) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    try {
+      final prefsDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('preferences')
+          .doc('notificationSettings')
+          .get();
+
+      if (!prefsDoc.exists) return true; // Default to enabled if no preferences set
+
+      final data = prefsDoc.data()!;
+      switch (type) {
+        case 'bin_level':
+          return data['binLevelUpdates'] ?? true;
+        case 'offer':
+          return data['offerNotifications'] ?? true;
+        case 'system':
+          return data['systemNotifications'] ?? true;
+        default:
+          return true;
+      }
+    } catch (e) {
+      print('Error checking notification preferences: $e');
+      return true; // Default to enabled on error
+    }
+  }
+
+  Future<void> showOfferAccepted({
+    required String company,
+    required num kilos
+  }) async {
+    // Check if offer notifications are enabled
+    if (!await areNotificationsEnabledForType('offer')) {
+      print("Offer notifications are disabled");
+      return;
+    }
+
     // Check if this is a background notification
     bool isBackground = FirebaseAuth.instance.currentUser == null;
     
@@ -408,6 +449,12 @@ class NotificationService {
     required String level,
     String? binId,
   }) async {
+    // Check if bin level notifications are enabled
+    if (!await areNotificationsEnabledForType('bin_level')) {
+      print("Bin level notifications are disabled");
+      return;
+    }
+
     // Check if this is a background notification
     bool isBackground = FirebaseAuth.instance.currentUser == null;
     
@@ -651,6 +698,20 @@ class NotificationService {
       body,
       const NotificationDetails(android: androidDetails, iOS: iosDetails),
     );
+  }
+
+  Future<void> showSystemNotification({
+    required String title,
+    required String message,
+    Map<String, dynamic>? data,
+  }) async {
+    // Check if system notifications are enabled
+    if (!await areNotificationsEnabledForType('system')) {
+      print("System notifications are disabled");
+      return;
+    }
+
+    // Rest of your existing system notification code...
   }
 }
 

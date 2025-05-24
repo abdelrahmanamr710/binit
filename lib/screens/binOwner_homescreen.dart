@@ -303,11 +303,12 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
         }
       }
 
-      // Update Firestore
+      // Update Firestore with emptied status
       await binDoc.reference.update({
         '${materialType == 'plastic' ? 'plastic_total_weight' : 'metal_total_weight'}': FieldValue.increment(weight),
         '${materialType == 'plastic' ? 'plastic_emptied_count' : 'metal_emptied_count'}': FieldValue.increment(1),
         '${materialType == 'plastic' ? 'plastic_last_emptied' : 'metal_last_emptied'}': FieldValue.serverTimestamp(),
+        '${materialType == 'plastic' ? 'plastic_emptied' : 'metal_emptied'}': true,  // Set emptied status to true
       });
 
       // Reset bin level to 0 at the correct path
@@ -360,6 +361,7 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
         ? 'plastic/level'
         : 'metal/level';
     final binRef = FirebaseDatabase.instance.ref('BIN/$binId/$levelPath');
+    
     return StreamBuilder<DatabaseEvent>(
       stream: binRef.onValue,
       builder: (context, snapshot) {
@@ -370,78 +372,115 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
               ? rawValue
               : int.tryParse(rawValue.toString().replaceAll('%', '')) ?? 0;
         }
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8.0),
-          padding: const EdgeInsets.all(8.0),
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(10.0),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Material type (title)
-              Center(
-                child: Text(
-                  materialType == 'plastic' ? 'Plastic Bin' : 'Metal Bin',
-                  style: const TextStyle(
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
+        
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('registered_bins')
+              .doc(binId)
+              .snapshots(),
+          builder: (context, binSnapshot) {
+            if (!binSnapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final binData = binSnapshot.data!.data() as Map<String, dynamic>?;
+            if (binData == null) return const SizedBox.shrink();
+
+            final bool isEmptied = materialType == 'plastic' 
+                ? (binData['plastic_emptied'] ?? true)
+                : (binData['metal_emptied'] ?? true);
+            
+            final lastEmptiedTimestamp = materialType == 'plastic'
+                ? binData['plastic_last_emptied']
+                : binData['metal_last_emptied'];
+
+            String lastActionText = '';
+            if (lastEmptiedTimestamp != null) {
+              final timestamp = (lastEmptiedTimestamp as Timestamp).toDate();
+              final formattedDate = '${timestamp.day}/${timestamp.month}/${timestamp.year}';
+              lastActionText = 'Last emptied: $formattedDate';
+            }
+
+            return Container(
+              margin: const EdgeInsets.symmetric(vertical: 8.0),
+              padding: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(10.0),
               ),
-              const SizedBox(height: 8.0),
-              // 2. Bin PNG
-              SizedBox(
-                width: double.infinity,
-                height: 110,
-                child: Image.asset(
-                  imagePath,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: 8.0),
-              // 3. Percentage
-              Center(
-                child: Text(
-                  'Level: $level%',
-                  style: TextStyle(
-                    fontSize: 16.0,
-                    color: level > 75 ? Colors.red : Colors.black,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(height: 8.0),
-              // 4. Fill bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                child: LinearProgressIndicator(
-                  value: level / 100,
-                  minHeight: 6,
-                  backgroundColor: Colors.grey[300],
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                    level > 75 ? Colors.red : Colors.green,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12.0),
-              Center(
-                child: ElevatedButton(
-                  onPressed: () => _handleEmptyBin(binId, materialType),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF26A69A),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Text(
+                      materialType == 'plastic' ? 'Plastic Bin' : 'Metal Bin',
+                      style: const TextStyle(
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  child: const Text('Empty'),
-                ),
+                  const SizedBox(height: 8.0),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 110,
+                    child: Image.asset(
+                      imagePath,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  Center(
+                    child: Text(
+                      'Level: $level%',
+                      style: TextStyle(
+                        fontSize: 16.0,
+                        color: level > 75 ? Colors.red : Colors.black,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(height: 4.0),
+                  Center(
+                    child: Text(
+                      lastActionText,
+                      style: const TextStyle(
+                        fontSize: 12.0,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                    child: LinearProgressIndicator(
+                      value: level / 100,
+                      minHeight: 6,
+                      backgroundColor: Colors.grey[300],
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        level > 75 ? Colors.red : Colors.green,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12.0),
+                  Center(
+                    child: ElevatedButton(
+                      onPressed: () => _handleEmptyBin(binId, materialType),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF26A69A),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20.0),
+                        ),
+                      ),
+                      child: const Text('Empty'),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -975,6 +1014,10 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
                     'metal_total_weight': 0.0,
                     'plastic_emptied_count': 0,
                     'metal_emptied_count': 0,
+                    'plastic_emptied': true,  // Initialize emptied status
+                    'metal_emptied': true,    // Initialize emptied status
+                    'plastic_last_emptied': null,
+                    'metal_last_emptied': null,
                   }, SetOptions(merge: true));
 
                   if (!mounted) return;

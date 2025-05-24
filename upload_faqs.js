@@ -13,11 +13,11 @@ const db = admin.firestore();
 async function uploadFaqs() {
   const batch = db.batch();
   faqs.forEach((faq) => {
-    const docRef = db.collection('faqs').doc(); // auto-id
+    const docRef = db.collection('BOfaqs').doc(); // Changed collection name to BOfaqs
     batch.set(docRef, faq);
   });
   await batch.commit();
-  console.log('FAQs uploaded!');
+  console.log('FAQs uploaded to BOfaqs collection!');
 }
 
 uploadFaqs(); 

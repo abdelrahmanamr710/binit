@@ -46,25 +46,6 @@ class _RecyclingCompanyProfileScreenState extends State<RecyclingCompanyProfileS
     super.dispose();
   }
 
-  Future<void> _launchEmail() async {
-    final Uri emailLaunchUri = Uri(
-      scheme: 'mailto',
-      path: 'support@binit.com',
-      queryParameters: {
-        'subject': 'Support Request',
-      },
-    );
-    
-    if (await canLaunchUrl(emailLaunchUri)) {
-      await launchUrl(emailLaunchUri);
-    } else {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not launch email client')),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -240,7 +221,9 @@ class _RecyclingCompanyProfileScreenState extends State<RecyclingCompanyProfileS
                           leading: const Icon(Icons.email_outlined, color: Color(0xFF1A524F)),
                           title: const Text('Contact Support'),
                           trailing: const Icon(Icons.chevron_right),
-                          onTap: _launchEmail,
+                          onTap: () {
+                            Navigator.pushNamed(context, '/contact_support');
+                          },
                         ),
                       ],
                     ),

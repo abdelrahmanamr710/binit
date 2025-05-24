@@ -140,9 +140,33 @@ class SellOfferDetailsScreen extends StatelessWidget {
                         ),
                       )
                     else
-                      Text(
-                        status == 'accepted' ? 'Offer already accepted' : 'Offer $status',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF5F4),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: const Color(0xFF03342F), width: 2),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.check_circle,
+                              color: Color(0xFF03342F),
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              status == 'accepted' ? 'Offer Already Accepted' : 'Offer $status',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF03342F),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                   ],
                 ),

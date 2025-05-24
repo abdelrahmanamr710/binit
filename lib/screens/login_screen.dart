@@ -143,129 +143,145 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: Padding(
-        padding: const EdgeInsets.all(screenPadding),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              Expanded(
-                child: Image.asset(  // Replace with your actual logo asset path
-                  'assets/logo/logo.png',
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: 30),
-              Text(
-                'Login',
-                style: titleTextStyle,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              // Email Input
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.text,
-                decoration: const InputDecoration(
-                  labelText: 'Username', // changed label
-                  labelStyle: labelTextStyle, // changed label
-                  border: inputBorder,
-                  focusedBorder: inputBorder,
-                  enabledBorder: inputBorder,
-                  prefixIcon: Icon(Icons.email, color: Colors.grey), // Added color
-                  filled: true,
-                  fillColor: Colors.white, // added background color
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$')
-                      .hasMatch(value)) {
-                    return 'Please enter a valid email address';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              // Password Input
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  labelStyle: labelTextStyle,
-                  border: inputBorder,
-                  focusedBorder: inputBorder,
-                  enabledBorder: inputBorder,
-                  prefixIcon: Icon(Icons.lock, color: Colors.grey), // Added color
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your password';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 8),
-              // Forgot Password
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    //  Forgot password functionality
-                    print("Forgot Password Clicked");
-                  },
-                  child: const Text(
-                    'Forgot Your Password?', // changed text
-                    style: forgotPasswordTextStyle,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Login Button
-              ElevatedButton(
-                onPressed: _isLoading ? null : _login,
-                style: loginButtonStyle,
-                child: _isLoading
-                    ? const CircularProgressIndicator(
-                  valueColor:
-                  AlwaysStoppedAnimation<Color>(Colors.white),
-                )
-                    : const Text('Sign in'), // changed text
-              ),
-              const SizedBox(height: 16),
-              // Sign Up
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      resizeToAvoidBottomInset: true,
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            screenPadding,
+            screenPadding,
+            screenPadding,
+            screenPadding,
+          ),
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  const Text("Don't Have an Account? "), // changed text
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pushNamed('/signup_as');
-                    },
-                    child: const Text(
-                      'Sign Up',
-                      style: signUpTextStyle,
+                  SizedBox(
+                    height: 200,  // Restored original fixed height
+                    child: Image.asset(
+                      'assets/logo/logo.png',
+                      fit: BoxFit.contain,
                     ),
                   ),
+                  const SizedBox(height: 30),  // Restored original spacing
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: const Text(
+                      'Login',
+                      style: titleTextStyle,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Email Input
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Username',
+                      labelStyle: labelTextStyle,
+                      border: inputBorder,
+                      focusedBorder: inputBorder,
+                      enabledBorder: inputBorder,
+                      prefixIcon: Icon(Icons.email, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your email';
+                      }
+                      if (!RegExp(r'^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$')
+                          .hasMatch(value)) {
+                        return 'Please enter a valid email address';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  // Password Input
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Password',
+                      labelStyle: labelTextStyle,
+                      border: inputBorder,
+                      focusedBorder: inputBorder,
+                      enabledBorder: inputBorder,
+                      prefixIcon: Icon(Icons.lock, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  // Forgot Password
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        print("Forgot Password Clicked");
+                      },
+                      child: const Text(
+                        'Forgot Your Password?',
+                        style: forgotPasswordTextStyle,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  // Login Button
+                  SizedBox(
+                    height: 60,  // Fixed height for button
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _login,
+                      style: loginButtonStyle,
+                      child: _isLoading
+                          ? const CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            )
+                          : const Text('Sign in'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Sign Up
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      const Text("Don't Have an Account? "),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pushNamed('/signup_as');
+                        },
+                        child: const Text(
+                          'Sign Up',
+                          style: signUpTextStyle,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_errorMessage.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Text(
+                        _errorMessage,
+                        style: errorTextStyle,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  // Add bottom padding to ensure content is above keyboard
+                  SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
                 ],
               ),
-              if (_errorMessage.isNotEmpty)
-              //show error message.
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: Text(
-                    _errorMessage,
-                    style: errorTextStyle,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-            ],
+            ),
           ),
         ),
       ),

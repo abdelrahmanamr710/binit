@@ -1,0 +1,42 @@
+[
+  {
+    "question": "How do I view available bin offers?",
+    "answer": "Go to the home screen where you'll find a list of all available bin offers. You can filter them by material type and location."
+  },
+  {
+    "question": "How do I accept a bin offer?",
+    "answer": "Click on the bin offer you're interested in, review the details, and tap the 'Accept Offer' button. You'll receive a confirmation notification once accepted."
+  },
+  {
+    "question": "How can I view my accepted orders?",
+    "answer": "Navigate to the 'Orders' tab to see all your accepted and completed orders, sorted by date."
+  },
+  {
+    "question": "How do I update my company information?",
+    "answer": "Go to your profile page and tap 'Edit Profile' to update your company name, contact details, and other information."
+  },
+  {
+    "question": "How do I set my preferred materials?",
+    "answer": "In your profile settings, find 'Material Preferences' and select the types of recyclable materials your company handles."
+  },
+  {
+    "question": "How do I contact a bin owner?",
+    "answer": "Once you've accepted an offer, you can find the bin owner's contact information in the order details page."
+  },
+  {
+    "question": "What should I do if I can't complete a pickup?",
+    "answer": "Contact support immediately through the 'Support' section in your profile, and they will help coordinate with the bin owner."
+  },
+  {
+    "question": "How do I set my service area?",
+    "answer": "Go to your profile settings and tap 'Service Area' to set or update the regions where your company operates."
+  },
+  {
+    "question": "How do I view bin locations?",
+    "answer": "On the home screen, use the map view to see all available bins in your service area. Tap on any bin to view its details."
+  },
+  {
+    "question": "How do I manage notifications?",
+    "answer": "Go to your profile settings and find 'Notification Preferences' to customize which alerts you receive about new offers and updates."
+  }
+] 

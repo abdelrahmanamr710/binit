@@ -93,7 +93,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1A524F),
         elevation: 0,
-        title: const Text('Submit Feedback', style: TextStyle(color: Colors.white)),
+        title: const Text('Feedback', style: TextStyle(color: Colors.white)),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -187,7 +187,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                           'Submit Feedback',
-                          style: TextStyle(fontSize: 16),
+                          style: TextStyle(fontSize: 20, color: Colors.white),
+
                         ),
                 ),
               ),

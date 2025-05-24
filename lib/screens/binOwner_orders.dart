@@ -68,11 +68,11 @@ class _BinOwnerOrdersState extends State<BinOwnerOrders> {
   }
 
   Color _getStatusColor(String status) {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'pending':
-        return Colors.amber;
-      case 'approved':
-        return Colors.green;
+        return const Color(0xFFFFA726);  // Orange color
+      case 'accepted':
+        return const Color(0xFF66BB6A);  // Green color
       case 'rejected':
         return Colors.red;
       default:
@@ -82,7 +82,7 @@ class _BinOwnerOrdersState extends State<BinOwnerOrders> {
 
   void _sortDocuments() {
     if (mounted) {
-      setState(() { // Keep the setState here
+      setState(() {
         if (_sortOption == 'time') {
           _documents.sort((a, b) {
             Timestamp? dateA = a['date'] as Timestamp?;
@@ -106,10 +106,10 @@ class _BinOwnerOrdersState extends State<BinOwnerOrders> {
   }
 
   int _getStatusOrder(String status) {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'pending':
         return 1;
-      case 'approved':
+      case 'accepted':
         return 2;
       case 'rejected':
         return 3;
@@ -134,120 +134,169 @@ class _BinOwnerOrdersState extends State<BinOwnerOrders> {
       ),
       body: _isLoading
           ? const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF1A524F),
-        ),
-      )
+              child: CircularProgressIndicator(
+                color: Color(0xFF1A524F),
+              ),
+            )
           : Column(
-        children: [
-          Padding(
-            padding:
-            const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                DropdownButton<String>(
-                  value: _sortOption,
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        _sortOption = newValue;
-                      });
-                      _sortDocuments();
-                    }
-                  },
-                  items: <String>['time', 'status']
-                      .map<DropdownMenuItem<String>>((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(width: 10),
-                IconButton(
-                  icon: Icon(_isAscending
-                      ? Icons.arrow_upward
-                      : Icons.arrow_downward),
-                  onPressed: () {
-                    setState(() {
-                      _isAscending = !_isAscending;
-                    });
-                    _sortDocuments();
-                  },
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: _documents.length,
-              itemBuilder: (context, index) {
-                var data =
-                _documents[index].data() as Map<String, dynamic>;
-                Timestamp? date = data['date'] as Timestamp?;
-                String formattedDate = date != null
-                    ? DateFormat('dd/MM/yyyy HH:mm').format(date.toDate())
-                    : 'N/A';
-
-                return Card(
-                  elevation: 3,
-                  margin: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      DropdownButton<String>(
+                        value: _sortOption,
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              _sortOption = newValue;
+                            });
+                            _sortDocuments();
+                          }
+                        },
+                        items: <String>['time', 'status']
+                            .map<DropdownMenuItem<String>>((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(width: 10),
+                      IconButton(
+                        icon: Icon(_isAscending
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward),
+                        onPressed: () {
+                          setState(() {
+                            _isAscending = !_isAscending;
+                          });
+                          _sortDocuments();
+                        },
+                      ),
+                    ],
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(15),
-                    child: Row(
-                      mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _documents.length,
+                    padding: const EdgeInsets.all(8),
+                    itemBuilder: (context, index) {
+                      final doc = _documents[index];
+                      final data = doc.data() as Map<String, dynamic>;
+                      final timestamp = data['date'] as Timestamp?;
+                      final formattedDate = timestamp != null
+                          ? DateFormat('dd/MM/yyyy HH:mm')
+                              .format(timestamp.toDate())
+                          : 'No date';
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
                           child: Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Item: ${data['itemName'] ?? 'N/A'}',
-                                style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500),
-                                overflow:
-                                TextOverflow.ellipsis,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              data['material']?.toString().toLowerCase() == 'plastic' 
+                                                ? Icons.local_drink 
+                                                : Icons.build,
+                                              color: const Color(0xFF1A524F),
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              '${data['material'] ?? 'N/A'}',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Quantity: ${data['kilograms']?.toStringAsFixed(1) ?? 'N/A'} kg',
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Price: ${data['price']?.toStringAsFixed(2) ?? 'N/A'} EGP/kg',
+                                          style: const TextStyle(fontSize: 14),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Date: $formattedDate',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: _getStatusColor(
+                                            data['status'] ?? '',
+                                          ).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: _getStatusColor(
+                                              data['status'] ?? '',
+                                            ),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '${data['status']?.toString().toUpperCase() ?? 'N/A'}',
+                                          style: TextStyle(
+                                            color: _getStatusColor(
+                                              data['status'] ?? '',
+                                            ),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Total: ${((data['kilograms'] ?? 0.0) * (data['price'] ?? 0.0)).toStringAsFixed(2)} EGP',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 5),
-                              Text(
-                                  'Quantity: ${data['quantity'] ?? 'N/A'}'),
-                              const SizedBox(height: 5),
-                              Text('Date: $formattedDate'),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'Status: ${data['status'] ?? 'N/A'}',
-                              style: TextStyle(
-                                color: _getStatusColor(
-                                    data['status'] ?? ''),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -150,7 +150,7 @@ class _BinOwnerSignupScreenState extends State<BinOwnerSignupScreen> {
                             'Sign Up as Bin Owner',
                             style: TextStyle(
                               fontFamily: 'Roboto',
-                              fontSize: 55,
+                              fontSize: 50 ,
                               color: Colors.white,
                             ),
                             textAlign: TextAlign.right,

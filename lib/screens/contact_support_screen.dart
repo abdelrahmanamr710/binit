@@ -41,7 +41,10 @@ class ContactSupportScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Contact Support'),
+        title: const Text('Contact Support',
+        style: TextStyle(color: Colors.white),
+        ),
+
         backgroundColor: const Color(0xFF1A524F),
       ),
       body: Padding(
