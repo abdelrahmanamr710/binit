@@ -218,6 +218,7 @@ class NotificationService {
 
   // Check if notification was already sent
   Future<bool> wasNotificationSent(String notificationId) async {
+    // First check local cache for recent notifications
     final sentNotifications = _prefs.getStringList(_sentNotificationsKey) ?? [];
     final lastNotificationTime = _prefs.getInt(_lastNotificationTimeKey) ?? 0;
     final currentTime = DateTime.now().millisecondsSinceEpoch;
@@ -228,10 +229,48 @@ class NotificationService {
       return true;
     }
     
-    // Check if this exact notification was sent
+    // Check if this exact notification was sent in local cache
     if (sentNotifications.contains(notificationId)) {
-      print("Notification skipped: Already sent");
+      print("Notification skipped: Found in local cache");
       return true;
+    }
+
+    // Check Firestore for existing notification
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final existingDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('notifications')
+            .doc(notificationId)
+            .get();
+
+        if (existingDoc.exists) {
+          print("Notification skipped: Found in Firestore");
+          return true;
+        }
+      } else {
+        // If no user is logged in, check cached user
+        final cachedUserId = await _userCredentialsCacheService.getCachedUserId();
+        if (cachedUserId != null) {
+          final existingDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(cachedUserId)
+              .collection('notifications')
+              .doc(notificationId)
+              .get();
+
+          if (existingDoc.exists) {
+            print("Notification skipped: Found in Firestore for cached user");
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      print('Error checking Firestore for existing notification: $e');
+      // If we can't check Firestore, fall back to local cache result
+      return false;
     }
     
     return false;
@@ -242,13 +281,18 @@ class NotificationService {
     final sentNotifications = _prefs.getStringList(_sentNotificationsKey) ?? [];
     if (!sentNotifications.contains(notificationId)) {
       sentNotifications.add(notificationId);
-      // Limit the cache size to prevent excessive storage use
+      // Keep only the last 100 notifications in local cache
       if (sentNotifications.length > 100) {
         sentNotifications.removeRange(0, 50);
       }
       await _prefs.setStringList(_sentNotificationsKey, sentNotifications);
       await _prefs.setInt(_lastNotificationTimeKey, DateTime.now().millisecondsSinceEpoch);
     }
+  }
+
+  // Generate a unique notification ID that includes timestamp
+  String _generateNotificationId(String baseId) {
+    return '${baseId}_${DateTime.now().millisecondsSinceEpoch}';
   }
 
   // Check if user is bin owner (with caching)
@@ -379,6 +423,45 @@ class NotificationService {
     }
   }
 
+  Future<void> _storeNotification({
+    required String notificationId,
+    required String type,
+    required String title,
+    required String message,
+    required Map<String, dynamic> data,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    String? userId;
+    
+    if (user != null) {
+      userId = user.uid;
+    } else {
+      // If no user is logged in, try to get the cached user ID
+      userId = await _userCredentialsCacheService.getCachedUserId();
+    }
+    
+    if (userId == null) return;
+    
+    try {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('notifications')
+          .doc(notificationId)
+          .set({
+            'type': type,
+            'title': title,
+            'message': message,
+            'data': data,
+            'read': false,
+            'userId': userId,
+            'timestamp': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      print('Error storing notification: $e');
+    }
+  }
+
   Future<void> showOfferAccepted({
     required String company,
     required num kilos
@@ -404,8 +487,16 @@ class NotificationService {
       return;
     }
     
-    final notificationId = '${company}_${kilos}_offer';
-    if (await wasNotificationSent(notificationId)) return;
+    // Generate a unique notification ID without timestamp (for deduplication)
+    final baseNotificationId = '${company}_${kilos}_offer';
+    // Check if a similar notification was sent recently
+    if (await wasNotificationSent(baseNotificationId)) {
+      print("Offer notification skipped: Similar notification exists");
+      return;
+    }
+    
+    // If not sent, generate unique ID with timestamp for storage
+    final notificationId = _generateNotificationId(baseNotificationId);
     
     // Enhanced Android notification details
     const androidDetails = AndroidNotificationDetails(
@@ -437,6 +528,15 @@ class NotificationService {
       message,
       NotificationDetails(android: androidDetails, iOS: iosDetails),
       payload: jsonEncode({'type': 'offer_accepted', 'company': company, 'kilos': kilos}),
+    );
+    
+    // Store notification in Firestore
+    await _storeNotification(
+      notificationId: notificationId,
+      type: 'offer_accepted',
+      title: title,
+      message: message,
+      data: {'company': company, 'kilos': kilos},
     );
     
     // Store notification in sent list
@@ -479,12 +579,17 @@ class NotificationService {
       }
     }
     
-    final notificationId = '${binName}_${material}_${level}_${DateTime.now().millisecondsSinceEpoch}';
-    if (await wasNotificationSent(notificationId)) {
-      print("Not showing notification: Already sent recently");
+    // Generate a unique notification ID without timestamp (for deduplication)
+    final baseNotificationId = '${binName}_${material}_${level}';
+    // Check if a similar notification was sent recently
+    if (await wasNotificationSent(baseNotificationId)) {
+      print("Bin level notification skipped: Similar notification exists");
       return;
     }
-
+    
+    // If not sent, generate unique ID with timestamp for storage
+    final notificationId = _generateNotificationId(baseNotificationId);
+    
     // Enhanced Android notification details
     final androidDetails = AndroidNotificationDetails(
       _binLevelChannelId,
@@ -512,10 +617,13 @@ class NotificationService {
       presentSound: true,
     );
 
+    final title = 'Bin Level Update';
+    final message = 'Your $material bin ($binName) is now $level full.';
+
     await _plugin.show(
       binName.hashCode ^ material.hashCode ^ level.hashCode,
-      'Bin Level Update',
-      'Your $material bin ($binName) is now $level full.',
+      title,
+      message,
       NotificationDetails(android: androidDetails, iOS: iosDetails),
       payload: jsonEncode({
         'type': 'bin_level', 
@@ -526,12 +634,12 @@ class NotificationService {
       }),
     );
     
-    // Store notification in Firestore for tracking
+    // Store notification in Firestore
     await _storeNotification(
       notificationId: notificationId,
       type: 'bin_level_update',
-      title: 'Bin Level Update',
-      message: 'Your $material bin ($binName) is now $level full.',
+      title: title,
+      message: message,
       data: {
         'binName': binName, 
         'material': material, 
@@ -544,45 +652,6 @@ class NotificationService {
     await markNotificationAsSent(notificationId);
   }
 
-  // Store notification in Firestore for tracking
-  Future<void> _storeNotification({
-    required String notificationId,
-    required String type,
-    required String title,
-    required String message,
-    required Map<String, dynamic> data,
-  }) async {
-    final user = FirebaseAuth.instance.currentUser;
-    String? userId;
-    
-    if (user != null) {
-      userId = user.uid;
-    } else {
-      // If no user is logged in, try to get the cached user ID
-      userId = await _userCredentialsCacheService.getCachedUserId();
-    }
-    
-    if (userId == null) return;
-    
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('notifications')
-          .doc(notificationId)
-          .set({
-            'type': type,
-            'title': title,
-            'message': message,
-            'data': data,
-            'read': false,
-            'timestamp': FieldValue.serverTimestamp(),
-          });
-    } catch (e) {
-      print('Error storing notification: $e');
-    }
-  }
-  
   // Get notification settings
   Future<bool> getBackgroundNotificationsEnabled() async {
     return _prefs.getBool(_allowBackgroundNotificationsKey) ?? true;

@@ -47,9 +47,10 @@ class _BinOwnerNotificationsScreenState extends State<BinOwnerNotificationsScree
       if (user == null) return;
 
       final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
           .collection('notifications')
-          .where('userId', isEqualTo: user.uid)
-
+          .orderBy('timestamp', descending: true)
           .get();
 
       if (!mounted) return;
@@ -76,7 +77,12 @@ class _BinOwnerNotificationsScreenState extends State<BinOwnerNotificationsScree
 
   Future<void> _markAsRead(String notificationId) async {
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
       await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
           .collection('notifications')
           .doc(notificationId)
           .update({'read': true});
@@ -96,7 +102,12 @@ class _BinOwnerNotificationsScreenState extends State<BinOwnerNotificationsScree
 
   Future<void> _deleteNotification(String notificationId) async {
     try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
       await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
           .collection('notifications')
           .doc(notificationId)
           .delete();
