@@ -1,0 +1,396 @@
+@startuml "Bin-it System Context Diagram"
+
+title Bin-it System Context Diagram
+
+actor "Bin Owner" as BO
+actor "Recycling Company" as RC
+system "Bin-it System" as BIS
+system "Firebase" as FB
+system "Payment Gateway" as PG
+
+BO --> BIS : Manages bins & sells waste
+RC --> BIS : Buys waste & manages orders
+BIS --> FB : Stores & retrieves data
+BIS --> PG : Processes payments
+
+@enduml
+
+@startuml "Bin-it Use Case Diagram"
+!theme plain
+title Bin-it Use Case Diagram
+
+left to right direction
+
+actor "Bin Owner" as BO
+actor "Recycling Company" as RC
+
+rectangle "Bin-it System" {
+  usecase "Register" as UC1
+  usecase "Login" as UC2
+  usecase "Manage Profile" as UC3
+  usecase "Post Waste Sale" as UC4
+  usecase "View Orders" as UC5
+  usecase "Manage Stock" as UC6
+  usecase "View Notifications" as UC7
+  usecase "Browse Waste Offers" as UC8
+  usecase "Accept/Reject Offers" as UC9
+  usecase "Contact Support" as UC10
+}
+
+BO --> UC1
+BO --> UC2
+BO --> UC3
+BO --> UC4
+BO --> UC5
+BO --> UC6
+BO --> UC7
+BO --> UC10
+
+RC --> UC1
+RC --> UC2
+RC --> UC3
+RC --> UC8
+RC --> UC9
+RC --> UC5
+RC --> UC7
+RC --> UC10
+
+@enduml
+
+@startuml "Bin-it Activity Diagram - Waste Sale Process"
+!theme plain
+title Bin-it Activity Diagram - Waste Sale Process
+
+start
+:Bin Owner logs in;
+:Navigate to Sell Screen;
+:Enter waste details;
+:Post waste for sale;
+
+fork
+  :Notify Recycling Companies;
+  :Companies view offer;
+  if (Accept Offer?) then (yes)
+    :Company accepts offer;
+    :Update order status;
+    :Notify Bin Owner;
+  else (no)
+    :Continue browsing;
+  endif
+fork again
+  :Bin Owner waits;
+  :Receive notification;
+  if (Offer accepted?) then (yes)
+    :Prepare waste for pickup;
+  else (no)
+    :Update listing;
+  endif
+end fork
+
+stop
+
+@enduml
+
+@startuml "Bin-it Sequence Diagram - Bin Owner Flow"
+!theme plain
+title Bin-it Sequence Diagram - Bin Owner Flow
+
+actor "Bin Owner" as BO
+participant "Bin-it App" as APP
+participant "Firebase" as FB
+participant "Notification Service" as NS
+
+BO -> APP: Login
+APP -> FB: Authenticate
+FB --> APP: Return user data
+APP --> BO: Show dashboard
+
+BO -> APP: Access stock management
+APP -> FB: Fetch bin data
+FB --> APP: Return bins & stock levels
+APP --> BO: Display stock info
+
+BO -> APP: Create sell offer
+APP -> FB: Store offer details
+FB -> NS: Notify recycling companies
+NS --> FB: Confirmation
+FB --> APP: Offer created
+APP --> BO: Show confirmation
+
+BO -> APP: View order status
+APP -> FB: Fetch order updates
+FB --> APP: Return order details
+APP --> BO: Display order status
+
+@enduml
+
+@startuml "Bin-it Sequence Diagram - Recycling Company Flow"
+!theme plain
+title Bin-it Sequence Diagram - Recycling Company Flow
+
+actor "Recycling Company" as RC
+participant "Bin-it App" as APP
+participant "Firebase" as FB
+participant "Notification Service" as NS
+
+RC -> APP: Login
+APP -> FB: Authenticate
+FB --> APP: Return company data
+APP --> RC: Show dashboard
+
+NS -> RC: New offer notification
+RC -> APP: View offer details
+APP -> FB: Fetch offer data
+FB --> APP: Return offer details
+APP --> RC: Display offer
+
+RC -> APP: Accept offer
+APP -> FB: Update offer status
+FB -> NS: Notify bin owner
+NS --> FB: Confirmation
+FB --> APP: Status updated
+APP --> RC: Show confirmation
+
+RC -> APP: Check order progress
+APP -> FB: Fetch order status
+FB --> APP: Return order details
+APP --> RC: Display order status
+
+@enduml
+
+@startuml "Bin-it Sequence Diagram - Order Process"
+!theme plain
+title Bin-it Sequence Diagram - Order Process
+
+actor "Bin Owner" as BO
+participant "Bin-it App" as APP
+participant "Firebase" as FB
+actor "Recycling Company" as RC
+
+BO -> APP: Post waste sale
+APP -> FB: Store waste details
+FB --> RC: Notify new waste listing
+RC -> APP: View waste details
+RC -> APP: Accept offer
+APP -> FB: Update order status
+FB --> BO: Notify offer accepted
+BO -> APP: Confirm pickup details
+APP -> FB: Update pickup status
+FB --> RC: Send pickup confirmation
+
+@enduml
+
+@startuml "Bin-it Class Diagram"
+!theme plain
+title Bin-it Class Diagram
+
+class User {
+  +String uid
+  +String email
+  +String name
+  +String phone
+  +String type
+  +String address
+  +DateTime createdAt
+  +register()
+  +login()
+  +updateProfile()
+}
+
+class BinOwner {
+  +List<Bin> bins
+  +addBin()
+  +removeBin()
+  +updateStock()
+  +postWasteSale()
+}
+
+class RecyclingCompany {
+  +String companyName
+  +String license
+  +viewOffers()
+  +acceptOffer()
+  +rejectOffer()
+}
+
+class Bin {
+  +String id
+  +String ownerId
+  +double capacity
+  +String wasteType
+  +double currentStock
+  +updateStock()
+}
+
+class Order {
+  +String id
+  +String sellerId
+  +String buyerId
+  +double quantity
+  +double price
+  +String status
+  +DateTime createdAt
+  +updateStatus()
+}
+
+class Notification {
+  +String id
+  +String userId
+  +String title
+  +String message
+  +DateTime createdAt
+  +markAsRead()
+}
+
+User <|-- BinOwner
+User <|-- RecyclingCompany
+BinOwner "1" *-- "*" Bin
+BinOwner "1" -- "*" Order
+RecyclingCompany "1" -- "*" Order
+User "1" -- "*" Notification
+
+@enduml
+
+@startuml "Bin-it Database ERD"
+!theme plain
+title Bin-it Database ERD
+
+entity "Users" {
+  + userId : string <<PK>>
+  --
+  email : string
+  userType : string
+  name : string
+  phone : string
+  address : string
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "RegisteredBins" {
+  + binId : string <<PK>>
+  --
+  owners : string[] <<FK>>
+  bin_path : string
+  plastic_max_capacity : number
+  metals_max_capacity : number
+  plastic_total_weight : number
+  metal_total_weight : number
+  plastic_emptied_count : number
+  metal_emptied_count : number
+  plastic_last_emptied : timestamp
+  metal_last_emptied : timestamp
+  lastUpdated : timestamp
+}
+
+entity "Orders" {
+  + orderId : string <<PK>>
+  --
+  binOwnerId : string <<FK>>
+  companyId : string <<FK>>
+  material : string
+  quantity : number
+  price : number
+  status : string
+  createdAt : timestamp
+  updatedAt : timestamp
+}
+
+entity "Notifications" {
+  + notificationId : string <<PK>>
+  --
+  userId : string <<FK>>
+  type : string
+  title : string
+  message : string
+  data : map
+  read : boolean
+  timestamp : timestamp
+}
+
+entity "Offers" {
+  + offerId : string <<PK>>
+  --
+  binOwnerId : string <<FK>>
+  material : string
+  quantity : number
+  price : number
+  status : string
+  createdAt : timestamp
+}
+
+Users ||--o{ RegisteredBins : owns
+Users ||--o{ Orders : places
+Users ||--o{ Orders : accepts
+Users ||--o{ Notifications : receives
+Users ||--o{ Offers : creates
+Users ||--o{ Offers : accepts
+
+@enduml
+
+@startuml "Bin-it Sequence Diagram - Bin Owner Flow"
+!theme plain
+title Bin-it Sequence Diagram - Bin Owner Flow
+
+actor "Bin Owner" as BO
+participant "Bin-it App" as APP
+participant "Firebase" as FB
+participant "Notification Service" as NS
+
+BO -> APP: Login
+APP -> FB: Authenticate
+FB --> APP: Return user data
+APP --> BO: Show dashboard
+
+BO -> APP: Access stock management
+APP -> FB: Fetch bin data
+FB --> APP: Return bins & stock levels
+APP --> BO: Display stock info
+
+BO -> APP: Create sell offer
+APP -> FB: Store offer details
+FB -> NS: Notify recycling companies
+NS --> FB: Confirmation
+FB --> APP: Offer created
+APP --> BO: Show confirmation
+
+BO -> APP: View order status
+APP -> FB: Fetch order updates
+FB --> APP: Return order details
+APP --> BO: Display order status
+
+@enduml
+
+@startuml "Bin-it Sequence Diagram - Recycling Company Flow"
+!theme plain
+title Bin-it Sequence Diagram - Recycling Company Flow
+
+actor "Recycling Company" as RC
+participant "Bin-it App" as APP
+participant "Firebase" as FB
+participant "Notification Service" as NS
+
+RC -> APP: Login
+APP -> FB: Authenticate
+FB --> APP: Return company data
+APP --> RC: Show dashboard
+
+NS -> RC: New offer notification
+RC -> APP: View offer details
+APP -> FB: Fetch offer data
+FB --> APP: Return offer details
+APP --> RC: Display offer
+
+RC -> APP: Accept offer
+APP -> FB: Update offer status
+FB -> NS: Notify bin owner
+NS --> FB: Confirmation
+FB --> APP: Status updated
+APP --> RC: Show confirmation
+
+RC -> APP: Check order progress
+APP -> FB: Fetch order status
+FB --> APP: Return order details
+APP --> RC: Display order status
+
+@enduml
