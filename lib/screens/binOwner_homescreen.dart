@@ -342,7 +342,7 @@ class _BinOwnerHomeScreenState extends State<BinOwnerHomeScreen> {
           await sub?.cancel();
         }
       });
-      await Future.delayed(const Duration(seconds: 5));
+      await Future.delayed(const Duration(seconds: 10));
       await sub?.cancel();
     } catch (e) {
       if (mounted) {
